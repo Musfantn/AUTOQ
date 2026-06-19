@@ -1,0 +1,31 @@
+# ── Installer output (Inno Setup) ─────────────────────────────────────────────
+installer/
+
+# ── PyInstaller build artifacts ───────────────────────────────────────────────
+dist/
+build/
+*.spec.bak
+
+# ── Python cache ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ── Database (dữ liệu local, không commit) ────────────────────────────────────
+database/
+*.db
+*.sqlite3
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+
+# ── OS files ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea

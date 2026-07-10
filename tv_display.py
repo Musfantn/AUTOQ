@@ -109,11 +109,17 @@ class TVDisplay(QWidget):
         self.lbl_patient_info.setAlignment(Qt.AlignCenter)
         self.lbl_patient_info.setStyleSheet("font-size: 32px; color: #475569; font-weight: normal; border: none; background: transparent;")
 
+        self.lbl_services = QLabel("")
+        self.lbl_services.setAlignment(Qt.AlignCenter)
+        self.lbl_services.setStyleSheet("font-size: 36px; color: #0284c7; font-weight: bold; border: none; margin-top: 15px; background: transparent;")
+        self.lbl_services.setWordWrap(True)
+
         left_layout.addWidget(self.room_label)
         left_layout.addWidget(msg)
         left_layout.addWidget(self.number)
         left_layout.addWidget(self.lbl_patient_name)
         left_layout.addWidget(self.lbl_patient_info)
+        left_layout.addWidget(self.lbl_services)
         left_layout.addStretch()
 
         # --- CỘT PHẢI (Danh sách chờ tiếp theo - Chiếm 45%) ---
@@ -401,11 +407,13 @@ class TVDisplay(QWidget):
             self.number.setText("CC")
             self.lbl_patient_name.setText("CẤP CỨU")
             self.lbl_patient_info.setText("")
+            self.lbl_services.setText("SIÊU ÂM CẤP CỨU")
         else:
             self.number.setStyleSheet("font-size: 260px; color: #dc2626; font-weight: bold; font-family: 'Arial'; border: none; background: transparent;")
             self.number.setText(str(n))
             self.lbl_patient_name.setText("---")
             self.lbl_patient_info.setText("")
+            self.lbl_services.setText("")
 
     def update_queue_data(self, current_calling, waiting_list):
         """Cập nhật dữ liệu hàng đợi chi tiết và hiển thị lên TV"""
@@ -415,25 +423,53 @@ class TVDisplay(QWidget):
             ten_bn = current_calling.get("ten_bn", "")
             tuoi = current_calling.get("tuoi", "")
             ma_bn = current_calling.get("ma_bn", "")
+            dich_vu = current_calling.get("dich_vu", "")
+            ngay_sinh = current_calling.get("ngay_sinh", "")
             
             if stt == "CC":
                 self.number.setStyleSheet("font-size: 180px; color: #dc2626; font-weight: bold; font-family: 'Arial'; border: none; background: transparent;")
                 self.number.setText("CC")
                 self.lbl_patient_name.setText("CẤP CỨU")
                 self.lbl_patient_info.setText("")
+                self.lbl_services.setText("SIÊU ÂM CẤP CỨU")
             else:
                 self.number.setStyleSheet("font-size: 260px; color: #dc2626; font-weight: bold; font-family: 'Arial'; border: none; background: transparent;")
                 self.number.setText(stt)
                 self.lbl_patient_name.setText(ten_bn.upper())
-                if ma_bn == "BN_SET":
+                
+                # Trích xuất năm sinh
+                nam_sinh = ""
+                if ngay_sinh:
+                    ngay_sinh_str = str(ngay_sinh).strip()
+                    if "/" in ngay_sinh_str:
+                        nam_sinh = ngay_sinh_str.split("/")[-1]
+                    elif "-" in ngay_sinh_str:
+                        nam_sinh = ngay_sinh_str.split("-")[0]
+                    else:
+                        nam_sinh = ngay_sinh_str
+
+                # Hiển thị tuổi và năm sinh cạnh nhau
+                if tuoi and nam_sinh:
+                    self.lbl_patient_info.setText(f"Tuổi: {tuoi} ({nam_sinh})")
+                elif tuoi:
                     self.lbl_patient_info.setText(f"Tuổi: {tuoi}")
+                elif nam_sinh:
+                    self.lbl_patient_info.setText(f"Năm sinh: {nam_sinh}")
                 else:
-                    self.lbl_patient_info.setText(f"Tuổi: {tuoi}   |   Mã BN: {ma_bn}")
+                    self.lbl_patient_info.setText("")
+                
+                # Hiển thị các dịch vụ chỉ định (mỗi dịch vụ 1 dòng)
+                if dich_vu:
+                    services_list = [s.strip() for s in dich_vu.split("\n") if s.strip()]
+                    self.lbl_services.setText("\n".join(services_list))
+                else:
+                    self.lbl_services.setText("")
         else:
             self.number.setStyleSheet("font-size: 260px; color: #94a3b8; font-weight: bold; font-family: 'Arial'; border: none; background: transparent;")
             self.number.setText("000")
             self.lbl_patient_name.setText("--- CHỜ GỌI SỐ ---")
             self.lbl_patient_info.setText("")
+            self.lbl_services.setText("")
 
         # 2. Cập nhật danh sách chờ (Cột phải)
         for i in range(5):
@@ -452,10 +488,27 @@ class TVDisplay(QWidget):
                 card["name_lbl"].setText(pat.get("ten_bn", "").upper())
                 
                 tuoi = pat.get("tuoi", "")
+                ngay_sinh = pat.get("ngay_sinh", "")
+                nam_sinh = ""
+                if ngay_sinh:
+                    ngay_sinh_str = str(ngay_sinh).strip()
+                    if "/" in ngay_sinh_str:
+                        nam_sinh = ngay_sinh_str.split("/")[-1]
+                    elif "-" in ngay_sinh_str:
+                        nam_sinh = ngay_sinh_str.split("-")[0]
+                    else:
+                        nam_sinh = ngay_sinh_str
+
+                age_ns_str = f"Tuổi: {tuoi}"
+                if tuoi and nam_sinh:
+                    age_ns_str = f"Tuổi: {tuoi} ({nam_sinh})"
+                elif nam_sinh:
+                    age_ns_str = f"NS: {nam_sinh}"
+
                 dich_vu = pat.get("dich_vu", "").replace("\n", ", ").strip()
                 if len(dich_vu) > 40:
                     dich_vu = dich_vu[:37] + "..."
-                card["info_lbl"].setText(f"Tuổi: {tuoi}   |   {dich_vu}")
+                card["info_lbl"].setText(f"{age_ns_str}   |   {dich_vu}")
                 card["frame"].setStyleSheet("background: #f1f5f9; border-radius: 10px; border: 1px solid #cbd5e1;")
             else:
                 card["stt_lbl"].setText("")

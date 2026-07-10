@@ -9,7 +9,8 @@ from datetime import datetime
 
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTextEdit,
-    QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QMessageBox, QFrame
+    QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QMessageBox, QFrame,
+    QListWidget, QListWidgetItem
 )
 from PySide6.QtCore import Qt, QThread, Signal, Slot, QTimer
 from PySide6.QtGui import QFont, QIcon
@@ -112,32 +113,57 @@ class LookupThread(QThread):
                     return False
 
             wait.until(cho_ma_bn_khop)
-            row = driver.find_element(By.XPATH, "//table[@id='grdDanhSachCDHA']//tr[contains(@class, 'jqgrow')][1]")
-            cells = row.find_elements(By.TAG_NAME, "td")
+            # Lấy tất cả các dòng trong bảng grdDanhSachCDHA
+            rows = driver.find_elements(By.XPATH, "//table[@id='grdDanhSachCDHA']//tr[contains(@class, 'jqgrow')]")
+            
+            ten_bn = ""
+            ngay_sinh = ""
+            tuoi = ""
+            matching_indices = []
 
-            ten_bn = cells[7].text.strip()
-            ngay_sinh = cells[8].text.strip()
-            tuoi = str(tinh_tuoi(ngay_sinh))
+            for i, row in enumerate(rows):
+                try:
+                    cells = row.find_elements(By.TAG_NAME, "td")
+                    if len(cells) >= 6 and cells[5].text.strip().upper() == self.ma_bn.upper():
+                        matching_indices.append(i + 1)
+                        if not ten_bn and len(cells) >= 9:
+                            ten_bn = cells[7].text.strip()
+                            ngay_sinh = cells[8].text.strip()
+                            tuoi = str(tinh_tuoi(ngay_sinh))
+                except Exception:
+                    pass
 
-            try:
-                row.click()
-                time.sleep(0.5)
-            except Exception:
-                pass
+            if not matching_indices:
+                if rows:
+                    cells = rows[0].find_elements(By.TAG_NAME, "td")
+                    if len(cells) >= 9:
+                        ten_bn = cells[7].text.strip()
+                        ngay_sinh = cells[8].text.strip()
+                        tuoi = str(tinh_tuoi(ngay_sinh))
+                    matching_indices = [1]
 
             dich_vu_list = []
             dich_vu_xpath = "//table[@id='grdKetQuaChanDoan']//tr[contains(@class, 'jqgrow')]"
-            try:
-                wait.until(EC.presence_of_element_located((By.XPATH, dich_vu_xpath)))
-                service_rows = driver.find_elements(By.XPATH, dich_vu_xpath)
-                for s_row in service_rows:
-                    s_cells = s_row.find_elements(By.TAG_NAME, "td")
-                    if len(s_cells) >= 4:
-                        s_name = s_cells[3].text.strip()
-                        if s_name:
-                            dich_vu_list.append(s_name)
-            except Exception:
-                pass
+            
+            for idx in matching_indices:
+                try:
+                    row = driver.find_element(By.XPATH, f"//table[@id='grdDanhSachCDHA']//tr[contains(@class, 'jqgrow')][{idx}]")
+                    try:
+                        row.click()
+                    except Exception:
+                        driver.execute_script("arguments[0].click();", row)
+                    
+                    time.sleep(0.5)
+                    
+                    service_rows = driver.find_elements(By.XPATH, dich_vu_xpath)
+                    for s_row in service_rows:
+                        s_cells = s_row.find_elements(By.TAG_NAME, "td")
+                        if len(s_cells) >= 4:
+                            s_name = s_cells[3].text.strip()
+                            if s_name and s_name not in dich_vu_list:
+                                dich_vu_list.append(s_name)
+                except Exception:
+                    pass
 
             dich_vu_str = "\n".join(dich_vu_list) if dich_vu_list else "Không tìm thấy dịch vụ chỉ định"
             self.success.emit(ten_bn, ngay_sinh, tuoi, dich_vu_str)
@@ -148,9 +174,17 @@ class LookupThread(QThread):
 # =============================================================================
 # PYSIDE6 GUI - KIOSK MODULE
 # =============================================================================
+class DeletableListWidget(QListWidget):
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Delete, Qt.Key_Backspace):
+            for item in self.selectedItems():
+                self.takeItem(self.row(item))
+        else:
+            super().keyPressEvent(event)
+
 class KioskApp(QWidget):
     # Signal để cập nhật giao diện sau khi đẩy Firestore thành công
-    push_success = Signal(str, str, str)  # room_num, ten_bn, stt
+    push_success = Signal(str, str, str, list)  # room_num, ten_bn, stt, pushed_services
     push_failed = Signal(str, str)        # room_num, error_msg
     counts_updated = Signal(dict)         # dict room_num -> count
 
@@ -179,13 +213,26 @@ class KioskApp(QWidget):
             QLineEdit:focus {
                 border: 1px solid #3b82f6;
             }
-            QTextEdit {
+            QTextEdit, QListWidget {
                 background-color: #1e293b;
                 border: 1px solid #334155;
                 border-radius: 8px;
                 padding: 8px;
                 color: #f1f5f9;
                 font-size: 13px;
+            }
+            QListWidget::item {
+                padding: 4px;
+                border-bottom: 1px solid #1e293b;
+            }
+            QListWidget::item:hover {
+                background-color: #334155;
+                border-radius: 4px;
+            }
+            QListWidget::item:selected {
+                background-color: #3b82f6;
+                color: white;
+                border-radius: 4px;
             }
             QPushButton {
                 background-color: #3b82f6;
@@ -275,10 +322,28 @@ class KioskApp(QWidget):
         
         info_layout.addLayout(grid_layout)
 
-        info_layout.addWidget(QLabel("Các dịch vụ chỉ định:"))
-        self.edit_dich_vu = QTextEdit()
-        self.edit_dich_vu.setFixedHeight(80)
+        info_layout.addWidget(QLabel("Các dịch vụ chỉ định (Tích chọn để phân phòng riêng):"))
+        self.edit_dich_vu = DeletableListWidget()
+        self.edit_dich_vu.setFixedHeight(100)
         info_layout.addWidget(self.edit_dich_vu)
+
+        # Khung thêm dịch vụ thủ công
+        add_service_layout = QHBoxLayout()
+        self.edit_new_service = QLineEdit()
+        self.edit_new_service.setPlaceholderText("Nhập thêm dịch vụ thủ công...")
+        self.edit_new_service.setFixedHeight(30)
+        self.edit_new_service.setFont(QFont("Segoe UI", 9))
+        self.edit_new_service.returnPressed.connect(self.add_manual_service)
+
+        self.btn_add_service = QPushButton("+")
+        self.btn_add_service.setFixedWidth(40)
+        self.btn_add_service.setFixedHeight(30)
+        self.btn_add_service.setStyleSheet("background-color: #3b82f6; font-size: 14px; padding: 0;")
+        self.btn_add_service.clicked.connect(self.add_manual_service)
+
+        add_service_layout.addWidget(self.edit_new_service)
+        add_service_layout.addWidget(self.btn_add_service)
+        info_layout.addLayout(add_service_layout)
 
         layout.addWidget(self.group_info)
 
@@ -363,7 +428,15 @@ class KioskApp(QWidget):
         self.edit_ma.setText(self.entry_search.text().strip())
         self.edit_ten.setText(ten_bn)
         self.edit_tuoi.setText(tuoi)
-        self.edit_dich_vu.setText(dich_vu_str)
+        self.patient_ngay_sinh = ngay_sinh
+        
+        self.edit_dich_vu.clear()
+        services = [s.strip() for s in dich_vu_str.split("\n") if s.strip()]
+        for s in services:
+            item = QListWidgetItem(s)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Unchecked)
+            self.edit_dich_vu.addItem(item)
         
         self.log(f"Tìm thấy bệnh nhân: {ten_bn} (Tuổi: {tuoi})")
         self.entry_search.clear()
@@ -378,13 +451,42 @@ class KioskApp(QWidget):
         self.edit_ten.clear()
         self.edit_tuoi.clear()
         self.edit_dich_vu.clear()
+        self.patient_ngay_sinh = ""
         self.edit_ten.setFocus()
+
+    def add_manual_service(self):
+        text = self.edit_new_service.text().strip()
+        if text:
+            item = QListWidgetItem(text)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Unchecked)
+            self.edit_dich_vu.addItem(item)
+            self.edit_new_service.clear()
 
     def push_to_room(self, room_num):
         ma_bn = self.edit_ma.text().strip()
         ten_bn = self.edit_ten.text().strip()
         tuoi_str = self.edit_tuoi.text().strip()
-        dich_vu = self.edit_dich_vu.toPlainText().strip()
+
+        # Lấy danh sách dịch vụ được tích chọn hoặc tất cả nếu không tích chọn
+        checked_services = []
+        all_services = []
+        for i in range(self.edit_dich_vu.count()):
+            item = self.edit_dich_vu.item(i)
+            all_services.append(item.text())
+            if item.checkState() == Qt.Checked:
+                checked_services.append(item.text())
+
+        if checked_services:
+            services_to_push = checked_services
+        else:
+            services_to_push = all_services
+
+        if not services_to_push:
+            QMessageBox.warning(self, "Cảnh báo", "Không có dịch vụ chỉ định nào để đẩy!")
+            return
+
+        dich_vu = "\n".join(services_to_push)
 
         if not ten_bn:
             QMessageBox.warning(self, "Cảnh báo", "Vui lòng nhập tên bệnh nhân trước khi đẩy phòng!")
@@ -397,6 +499,16 @@ class KioskApp(QWidget):
         except ValueError:
             pass
 
+        # Lấy ngay_sinh
+        ngay_sinh = getattr(self, "patient_ngay_sinh", "")
+        if not ngay_sinh and tuoi_str:
+            try:
+                # Ước lượng năm sinh từ tuổi
+                year = datetime.now().year - int(tuoi_str)
+                ngay_sinh = str(year)
+            except ValueError:
+                pass
+
         # Vô hiệu hóa các nút đẩy phòng để tránh nhấn lặp
         for btn in self.room_buttons:
             btn.setEnabled(False)
@@ -405,29 +517,43 @@ class KioskApp(QWidget):
 
         # Chạy thao tác ghi Firestore trong luồng riêng biệt
         def run():
-            stt = firestore_queue.push_patient(room_num, ma_bn, ten_bn, tuoi, dich_vu)
+            stt = firestore_queue.push_patient(room_num, ma_bn, ten_bn, tuoi, ngay_sinh, dich_vu)
             if stt:
-                self.push_success.emit(room_num, ten_bn, stt)
+                self.push_success.emit(room_num, ten_bn, stt, services_to_push)
             else:
                 self.push_failed.emit(room_num, "Lỗi kết nối Firestore Cloud hoặc Security Rules.")
 
         threading.Thread(target=run, daemon=True).start()
 
-    @Slot(str, str, str)
-    def on_push_success(self, room_num, ten_bn, stt):
+    @Slot(str, str, str, list)
+    def on_push_success(self, room_num, ten_bn, stt, pushed_services):
         # Kích hoạt lại các nút phòng
         for btn in self.room_buttons:
             btn.setEnabled(True)
             
         self.log(f"Đồng bộ THÀNH CÔNG! Đã đẩy BN '{ten_bn}' vào PHÒNG {room_num} - STT: {stt}")
         
-        # Xóa sạch thông tin cũ để quét bệnh nhân tiếp theo
-        self.edit_ma.clear()
-        self.edit_ten.clear()
-        self.edit_tuoi.clear()
-        self.edit_dich_vu.clear()
-        self.entry_search.clear()
-        self.entry_search.setFocus()
+        # Xóa các dịch vụ đã đẩy thành công khỏi danh sách hiển thị
+        for s in pushed_services:
+            for i in range(self.edit_dich_vu.count()):
+                item = self.edit_dich_vu.item(i)
+                if item and item.text() == s:
+                    self.edit_dich_vu.takeItem(i)
+                    break
+
+        # Nếu không còn dịch vụ nào, xóa sạch thông tin cũ để quét bệnh nhân tiếp theo
+        if self.edit_dich_vu.count() == 0:
+            self.edit_ma.clear()
+            self.edit_ten.clear()
+            self.edit_tuoi.clear()
+            self.edit_dich_vu.clear()
+            self.patient_ngay_sinh = ""
+            self.entry_search.clear()
+            self.entry_search.setFocus()
+        else:
+            # Nếu vẫn còn dịch vụ chưa đẩy, giữ lại thông tin bệnh nhân và chỉ làm sạch ô tìm kiếm
+            self.entry_search.clear()
+            self.entry_search.setFocus()
 
         # Cập nhật ngay số lượng chờ trên các nút phòng
         self.refresh_counts_async()

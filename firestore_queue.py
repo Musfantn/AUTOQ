@@ -103,7 +103,7 @@ def save_room_queue(room_num, queue_data) -> bool:
     path = f"autoq_queues/room_{room_num}"
     return _firestore_set(path, queue_data)
 
-def push_patient(room_num, ma_bn, ten_bn, tuoi, dich_vu) -> str | None:
+def push_patient(room_num, ma_bn, ten_bn, tuoi, ngay_sinh, dich_vu) -> str | None:
     """Đẩy bệnh nhân mới vào phòng khám chỉ định, tự động gán số thứ tự tiếp theo."""
     queue_data = get_room_queue(room_num)
     queue_data["last_number"] += 1
@@ -114,6 +114,7 @@ def push_patient(room_num, ma_bn, ten_bn, tuoi, dich_vu) -> str | None:
         "ma_bn": ma_bn,
         "ten_bn": ten_bn,
         "tuoi": tuoi,
+        "ngay_sinh": ngay_sinh,
         "dich_vu": dich_vu,
         "timestamp": time.time()
     }

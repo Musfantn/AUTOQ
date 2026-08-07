@@ -4,6 +4,7 @@ from PySide6.QtGui import *
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import os
 import sys
+from firestore_client import extract_birth_year
 
 # Link logo dự phòng online (bạn có thể thay đổi link này sau)
 ONLINE_LOGO_URL = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-WQz3PjdjFwRym5KeITVAmlgNgpiA0ae5rg&s"
@@ -27,7 +28,7 @@ class TVDisplay(QWidget):
 
         # --- 1. HEADER (Chứa Logo và Tên BV) - DÙNG CHUNG ---
         header = QFrame()
-        header.setFixedHeight(150) # Cố định chiều cao header
+        header.setMinimumHeight(150) # Tối thiểu chiều cao header
         header.setStyleSheet("background: #0B5FA5; color: white; border: none;")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(30, 10, 30, 10)
@@ -40,7 +41,7 @@ class TVDisplay(QWidget):
         logo_container_layout.setAlignment(Qt.AlignCenter)
 
         self.logo = QLabel()
-        self.logo.setFixedSize(120, 120)
+        self.logo.setMinimumSize(120, 120)
         self.logo.setAlignment(Qt.AlignCenter)
         self.load_logo() # Gọi hàm load logo phức hợp
         
@@ -139,7 +140,7 @@ class TVDisplay(QWidget):
         self.waiting_cards = []
         for i in range(5):
             card_frame = QFrame()
-            card_frame.setFixedHeight(82)
+            card_frame.setMinimumHeight(82)
             card_frame.setStyleSheet("background: transparent; border: none;")
             
             card_layout = QHBoxLayout(card_frame)
@@ -148,7 +149,7 @@ class TVDisplay(QWidget):
 
             # Badge hiển thị STT
             stt_badge = QLabel("")
-            stt_badge.setFixedSize(70, 48)
+            stt_badge.setMinimumSize(70, 48)
             stt_badge.setAlignment(Qt.AlignCenter)
             stt_badge.setStyleSheet("""
                 background-color: transparent;
@@ -193,7 +194,7 @@ class TVDisplay(QWidget):
 
         # Footer bình thường
         normal_footer = QWidget()
-        normal_footer.setFixedHeight(140)
+        normal_footer.setMinimumHeight(140)
         normal_footer.setStyleSheet("background: #0B5FA5; border-top: 3px solid #084B83;")
         
         nf_layout = QVBoxLayout(normal_footer)
@@ -310,7 +311,7 @@ class TVDisplay(QWidget):
 
         # Footer trực (chữ chạy)
         duty_footer = QWidget()
-        duty_footer.setFixedHeight(70)
+        duty_footer.setMinimumHeight(70)
         duty_footer.setStyleSheet("background: #0B5FA5; border-top: 3px solid #084B83;")
 
         df_layout = QVBoxLayout(duty_footer)
@@ -437,26 +438,9 @@ class TVDisplay(QWidget):
                 self.number.setText(stt)
                 self.lbl_patient_name.setText(ten_bn.upper())
                 
-                # Trích xuất năm sinh
-                nam_sinh = ""
-                if ngay_sinh:
-                    ngay_sinh_str = str(ngay_sinh).strip()
-                    if "/" in ngay_sinh_str:
-                        nam_sinh = ngay_sinh_str.split("/")[-1]
-                    elif "-" in ngay_sinh_str:
-                        nam_sinh = ngay_sinh_str.split("-")[0]
-                    else:
-                        nam_sinh = ngay_sinh_str
-
-                # Hiển thị tuổi và năm sinh cạnh nhau
-                if tuoi and nam_sinh:
-                    self.lbl_patient_info.setText(f"Tuổi: {tuoi} ({nam_sinh})")
-                elif tuoi:
-                    self.lbl_patient_info.setText(f"Tuổi: {tuoi}")
-                elif nam_sinh:
-                    self.lbl_patient_info.setText(f"Năm sinh: {nam_sinh}")
-                else:
-                    self.lbl_patient_info.setText("")
+                # Trích xuất năm sinh và hiển thị
+                nam_sinh = extract_birth_year(ngay_sinh)
+                self.lbl_patient_info.setText(self._format_age_info(tuoi, nam_sinh))
                 
                 # Hiển thị các dịch vụ chỉ định (mỗi dịch vụ 1 dòng)
                 if dich_vu:
@@ -488,22 +472,8 @@ class TVDisplay(QWidget):
                 card["name_lbl"].setText(pat.get("ten_bn", "").upper())
                 
                 tuoi = pat.get("tuoi", "")
-                ngay_sinh = pat.get("ngay_sinh", "")
-                nam_sinh = ""
-                if ngay_sinh:
-                    ngay_sinh_str = str(ngay_sinh).strip()
-                    if "/" in ngay_sinh_str:
-                        nam_sinh = ngay_sinh_str.split("/")[-1]
-                    elif "-" in ngay_sinh_str:
-                        nam_sinh = ngay_sinh_str.split("-")[0]
-                    else:
-                        nam_sinh = ngay_sinh_str
-
-                age_ns_str = f"Tuổi: {tuoi}"
-                if tuoi and nam_sinh:
-                    age_ns_str = f"Tuổi: {tuoi} ({nam_sinh})"
-                elif nam_sinh:
-                    age_ns_str = f"NS: {nam_sinh}"
+                nam_sinh = extract_birth_year(pat.get("ngay_sinh", ""))
+                age_ns_str = self._format_age_info(tuoi, nam_sinh, short=True)
 
                 dich_vu = pat.get("dich_vu", "").replace("\n", ", ").strip()
                 if len(dich_vu) > 40:
@@ -516,6 +486,19 @@ class TVDisplay(QWidget):
                 card["name_lbl"].setText("")
                 card["info_lbl"].setText("")
                 card["frame"].setStyleSheet("background: transparent; border: none;")
+
+    # ─── HELPER METHODS ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _format_age_info(tuoi, nam_sinh, short: bool = False) -> str:
+        """Tạo chuỗi hiển thị tuổi + năm sinh."""
+        if tuoi and nam_sinh:
+            return f"Tuổi: {tuoi} ({nam_sinh})"
+        if tuoi:
+            return f"Tuổi: {tuoi}"
+        if nam_sinh:
+            return f"NS: {nam_sinh}" if short else f"Năm sinh: {nam_sinh}"
+        return ""
 
     def update_room(self, name):
         self.room_label.setText(name.upper())

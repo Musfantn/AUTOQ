@@ -6,12 +6,12 @@
 #        - Một nút "Xác nhận" duy nhất.
 # =============================================================================
 
-import re
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QComboBox, QFrame, QProgressBar, QMessageBox
 )
 from PySide6.QtCore import Qt, QThread, Signal
+from firestore_client import names_match
 
 
 # ─── Worker thread fetch dữ liệu bất đồng bộ ─────────────────────────────────
@@ -38,17 +38,6 @@ class FetchWorker(QThread):
             self.error.emit(str(e))
             # Vẫn emit doctors để có fallback
             self.done.emit(None, doctors)
-
-
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-
-def _clean_name(s: str) -> str:
-    s = re.sub(r'^(bs\.|tk\.|ktv\.)\s*', '', s.strip().lower())
-    return re.sub(r'\s+', ' ', s).strip()
-
-def _names_match(a: str, b: str) -> bool:
-    ca, cb = _clean_name(a), _clean_name(b)
-    return ca == cb or ca in cb or cb in ca
 
 
 # ─── Dialog ───────────────────────────────────────────────────────────────────
@@ -272,7 +261,7 @@ class DutyModeDialog(QDialog):
         default_idx = 0
         if today_doc and today_doc.get("name"):
             for i, (did, name, phone) in enumerate(self._doctors):
-                if _names_match(name, today_doc["name"]):
+                if names_match(name, today_doc["name"]):
                     default_idx = i
                     break
 

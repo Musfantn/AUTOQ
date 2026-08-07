@@ -1,8 +1,11 @@
 import sys
 from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
 from dashboard import Dashboard
 from tv_display import TVDisplay
 
+# High DPI scaling configuration
+QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 app = QApplication(sys.argv)
 
 tv = TVDisplay("PHÒNG SIÊU ÂM 1")

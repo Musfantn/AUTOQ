@@ -35,7 +35,7 @@ class OnCallSetupWindow(QWidget):
         self.manager = OnCallManager()
 
         self.setWindowTitle("Thiết lập Bác sĩ Trực")
-        self.setFixedSize(600, 560)
+        self.setMinimumSize(600, 560)
         self.setStyleSheet("""
             QWidget {
                 font-family: 'Segoe UI', Arial;
@@ -72,7 +72,7 @@ class OnCallSetupWindow(QWidget):
         sync_layout.addWidget(sync_info, 1)
 
         self.btn_sync = QPushButton("🔄 Đồng bộ Firestore")
-        self.btn_sync.setFixedHeight(35)
+        self.btn_sync.setMinimumHeight(35)
         self.btn_sync.setStyleSheet("""
             QPushButton {
                 background-color: #1976d2;

@@ -11,7 +11,7 @@ class SettingsWindow(QWidget):
         super().__init__()
         self.config = ConfigManager()
         self.setWindowTitle("Cấu hình Hệ thống - BVĐK Kỳ Anh")
-        self.setFixedSize(450, 380) # Giảm chiều cao do loại bỏ IP Kiosk
+        self.setMinimumSize(450, 380)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)

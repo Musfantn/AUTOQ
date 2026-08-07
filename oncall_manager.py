@@ -1,24 +1,16 @@
-import sqlite3
+# =============================================================================
+# FILE: oncall_manager.py
+# MÔ TẢ: Quản lý danh sách bác sĩ trực, lưu vào SQLite local.
+#        Hỗ trợ đồng bộ từ Firestore (TaskView).
+# =============================================================================
+
 import os
-import sys
+import re
+import sqlite3
 import threading
 
-
-def _get_db_path() -> str:
-    """Trả về đường dẫn config.db trong APPDATA (khi chạy exe) hoặc cạnh main.py (khi dev).
-    
-    Lý do dùng APPDATA: khi cài vào Program Files, thư mục đó read-only,
-    app sẽ bị PermissionError nếu cố ghi database vào đó.
-    """
-    if getattr(sys, 'frozen', False):
-        # Đang chạy từ file exe đã cài – lưu database vào %APPDATA%\AUTOQ
-        appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
-        base = os.path.join(appdata, "AUTOQ")
-    else:
-        base = os.path.abspath(".")
-    db_dir = os.path.join(base, "database")
-    os.makedirs(db_dir, exist_ok=True)
-    return os.path.join(db_dir, "config.db")
+from config_manager import get_db_dir
+from firestore_client import clean_name
 
 
 class OnCallManager:
@@ -26,13 +18,12 @@ class OnCallManager:
     Hỗ trợ đồng bộ từ Firestore (TaskView).
     """
 
-    DB_PATH = None  # resolved at runtime
-
     def __init__(self):
         self._lock = threading.Lock()
+        db_path = os.path.join(get_db_dir(), "config.db")
         # check_same_thread=False cho phép dùng connection từ nhiều thread
         # _lock đảm bảo chỉ một thread ghi tại một thời điểm
-        self.conn = sqlite3.connect(_get_db_path(), check_same_thread=False)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self._migrate()
 
     def _migrate(self):
@@ -113,18 +104,13 @@ class OnCallManager:
 
     def find_by_name(self, name: str) -> dict | None:
         """Tìm nhân sự theo tên (chuẩn hóa lowercase + bỏ tiền tố BS./TK.)."""
-        def clean(s):
-            import re
-            s = re.sub(r'^(bs\.|tk\.|ktv\.)\s*', '', s.strip().lower())
-            return re.sub(r'\s+', ' ', s)
-
-        target = clean(name)
+        target = clean_name(name)
         for row in self.get_all_full():
-            if clean(row["name"]) == target:
+            if clean_name(row["name"]) == target:
                 return row
         # Thử khớp gần đúng (contains)
         for row in self.get_all_full():
-            n = clean(row["name"])
+            n = clean_name(row["name"])
             if target in n or n in target:
                 return row
         return None
@@ -144,13 +130,11 @@ class OnCallManager:
     # ─── Đồng bộ Firestore ────────────────────────────────────────────────────
 
     def sync_from_firestore(self, personnel_list: list[dict]) -> dict:
-        """
-        Xóa toàn bộ danh sách cũ và thêm mới từ Firestore (chỉ bác sĩ).
+        """Xóa toàn bộ danh sách cũ và thêm mới từ Firestore (chỉ bác sĩ).
 
         Returns:
             {"added": int, "updated": 0, "total": int}
         """
-        # Xóa toàn bộ danh sách cũ để đồng bộ sạch
         with self._lock:
             self.conn.execute("DELETE FROM oncall_doctors")
             self.conn.commit()
@@ -170,5 +154,5 @@ class OnCallManager:
             added += 1
 
         total = len(self.get_all())
-        print(f"[OnCallManager] Sync: +{added} bac si. Tong: {total}")
+        print(f"[OnCallManager] Sync: +{added} bác sĩ. Tổng: {total}")
         return {"added": added, "updated": 0, "total": total}

@@ -1,11 +1,11 @@
 import sys
 import os
-import time
-import socket
-import subprocess
 import json
 import threading
+import socket
+import subprocess
 from datetime import datetime
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTextEdit,
@@ -15,161 +15,12 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, Signal, Slot, QTimer
 from PySide6.QtGui import QFont, QIcon
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from his_bridge.bridge import HisBridge
+from his_bridge.config import HisConfig
+from his_bridge.models import PatientInfo
 
 import firestore_queue
 
-# =============================================================================
-# SELENIUM UTILS
-# =============================================================================
-def tinh_tuoi(ngay_sinh_str):
-    try:
-        ngay_sinh_str = ngay_sinh_str.strip()
-        if not ngay_sinh_str:
-            return 0
-        date_part = ngay_sinh_str.split()[0]
-        if "/" in date_part:
-            birth_year = int(date_part.split("/")[-1])
-        elif "-" in date_part:
-            birth_year = int(date_part.split("-")[0])
-        else:
-            birth_year = int(date_part)
-        current_year = datetime.now().year
-        return current_year - birth_year
-    except Exception:
-        return 0
-
-def is_port_open(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-def open_chrome_debug():
-    if is_port_open(9222):
-        return True
-    chrome_paths = [
-        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe")
-    ]
-    chrome_path = None
-    for path in chrome_paths:
-        if os.path.exists(path):
-            chrome_path = path
-            break
-    if not chrome_path:
-        return False
-    user_data_dir = r"C:\ChromeDebug"
-    os.makedirs(user_data_dir, exist_ok=True)
-    try:
-        subprocess.Popen([chrome_path, "--remote-debugging-port=9222", f"--user-data-dir={user_data_dir}"],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(2.5)
-        return True
-    except Exception:
-        return False
-
-# Thread tra cứu bằng Selenium
-class LookupThread(QThread):
-    success = Signal(str, str, str, str)  # ten_bn, ngay_sinh, tuoi, dich_vu_str
-    error = Signal(str)
-
-    def __init__(self, ma_bn):
-        super().__init__()
-        self.ma_bn = ma_bn
-
-    def run(self):
-        driver = None
-        try:
-            if not open_chrome_debug():
-                self.error.emit("Không tìm thấy Google Chrome hoặc không thể mở cổng 9222!")
-                return
-
-            options = webdriver.ChromeOptions()
-            options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
-            driver = webdriver.Chrome(options=options)
-            wait = WebDriverWait(driver, 5)
-
-            search_box = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Nhập thông tin phiếu chỉ định để tìm kiếm']"))
-            )
-            search_box.clear()
-            search_box.send_keys(self.ma_bn)
-            search_box.send_keys(Keys.ENTER)
-
-            def cho_ma_bn_khop(d):
-                try:
-                    rows = d.find_elements(By.XPATH, "//table[@id='grdDanhSachCDHA']//tr[contains(@class, 'jqgrow')]")
-                    if not rows:
-                        return False
-                    cells = rows[0].find_elements(By.TAG_NAME, "td")
-                    if len(cells) >= 6:
-                        return cells[5].text.strip().upper() == self.ma_bn.upper()
-                    return False
-                except Exception:
-                    return False
-
-            wait.until(cho_ma_bn_khop)
-            # Lấy tất cả các dòng trong bảng grdDanhSachCDHA
-            rows = driver.find_elements(By.XPATH, "//table[@id='grdDanhSachCDHA']//tr[contains(@class, 'jqgrow')]")
-            
-            ten_bn = ""
-            ngay_sinh = ""
-            tuoi = ""
-            matching_indices = []
-
-            for i, row in enumerate(rows):
-                try:
-                    cells = row.find_elements(By.TAG_NAME, "td")
-                    if len(cells) >= 6 and cells[5].text.strip().upper() == self.ma_bn.upper():
-                        matching_indices.append(i + 1)
-                        if not ten_bn and len(cells) >= 9:
-                            ten_bn = cells[7].text.strip()
-                            ngay_sinh = cells[8].text.strip()
-                            tuoi = str(tinh_tuoi(ngay_sinh))
-                except Exception:
-                    pass
-
-            if not matching_indices:
-                if rows:
-                    cells = rows[0].find_elements(By.TAG_NAME, "td")
-                    if len(cells) >= 9:
-                        ten_bn = cells[7].text.strip()
-                        ngay_sinh = cells[8].text.strip()
-                        tuoi = str(tinh_tuoi(ngay_sinh))
-                    matching_indices = [1]
-
-            dich_vu_list = []
-            dich_vu_xpath = "//table[@id='grdKetQuaChanDoan']//tr[contains(@class, 'jqgrow')]"
-            
-            for idx in matching_indices:
-                try:
-                    row = driver.find_element(By.XPATH, f"//table[@id='grdDanhSachCDHA']//tr[contains(@class, 'jqgrow')][{idx}]")
-                    try:
-                        row.click()
-                    except Exception:
-                        driver.execute_script("arguments[0].click();", row)
-                    
-                    time.sleep(0.5)
-                    
-                    service_rows = driver.find_elements(By.XPATH, dich_vu_xpath)
-                    for s_row in service_rows:
-                        s_cells = s_row.find_elements(By.TAG_NAME, "td")
-                        if len(s_cells) >= 4:
-                            s_name = s_cells[3].text.strip()
-                            if s_name and s_name not in dich_vu_list:
-                                dich_vu_list.append(s_name)
-                except Exception:
-                    pass
-
-            dich_vu_str = "\n".join(dich_vu_list) if dich_vu_list else "Không tìm thấy dịch vụ chỉ định"
-            self.success.emit(ten_bn, ngay_sinh, tuoi, dich_vu_str)
-
-        except Exception as e:
-            self.error.emit(f"Tra cứu thất bại (Hết thời gian chờ hoặc Mã BN không khớp)")
 
 # =============================================================================
 # PYSIDE6 GUI - KIOSK MODULE
@@ -190,8 +41,8 @@ class KioskApp(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AutoQ Kiosk Tiếp đón v3.0 (Cloud Firestore)")
-        self.setFixedSize(600, 720)
+        self.setWindowTitle("AutoQ Kiosk Tiếp đón v4.0 (HIS Bridge + Firestore)")
+        self.setMinimumSize(600, 720)
         self.setStyleSheet("""
             QWidget {
                 background-color: #121824;
@@ -274,19 +125,54 @@ class KioskApp(QWidget):
         title = QLabel("AUTOQ KIOSK TIẾP ĐÓN")
         title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("color: #3b82f6; margin-bottom: 5px;")
+        title.setStyleSheet("color: #3b82f6; margin-bottom: 2px;")
         layout.addWidget(title)
+
+        # === SYSTEM HEALTH MONITOR BAR (Thanh trạng thái các app phụ trợ) ===
+        health_bar = QFrame()
+        health_bar.setStyleSheet("""
+            QFrame {
+                background-color: #1e293b;
+                border: 1px solid #334155;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QLabel {
+                font-size: 11px;
+                font-weight: bold;
+            }
+        """)
+        h_layout = QHBoxLayout(health_bar)
+        h_layout.setContentsMargins(8, 4, 8, 4)
+        h_layout.setSpacing(6)
+
+        self.badge_chrome = QLabel("🌐 Chrome 9222: ⏳ Check...")
+        self.badge_watcher = QLabel("👁 Watcher: ⏳ Check...")
+        self.badge_his = QLabel("🏥 HIS Rest: ⏳ Check...")
+        self.badge_firestore = QLabel("☁ Firestore: 🟢 OK")
+
+        badge_style_init = "color: #f59e0b; background: #78350f; padding: 3px 6px; border-radius: 4px;"
+        self.badge_chrome.setStyleSheet(badge_style_init)
+        self.badge_watcher.setStyleSheet(badge_style_init)
+        self.badge_his.setStyleSheet(badge_style_init)
+        self.badge_firestore.setStyleSheet("color: #10b981; background: #064e3b; padding: 3px 6px; border-radius: 4px;")
+
+        h_layout.addWidget(self.badge_chrome)
+        h_layout.addWidget(self.badge_watcher)
+        h_layout.addWidget(self.badge_his)
+        h_layout.addWidget(self.badge_firestore)
+        layout.addWidget(health_bar)
 
         # 1. Search Box Group
         search_box = QHBoxLayout()
         self.entry_search = QLineEdit()
         self.entry_search.setPlaceholderText("Nhập hoặc quét Mã Bệnh Nhân (Enter)...")
-        self.entry_search.setFixedHeight(45)
+        self.entry_search.setMinimumHeight(45)
         self.entry_search.setFont(QFont("Segoe UI", 12))
         self.entry_search.returnPressed.connect(self.start_lookup)
         
         self.btn_search = QPushButton("Tra cứu (HIS)")
-        self.btn_search.setFixedHeight(45)
+        self.btn_search.setMinimumHeight(45)
         self.btn_search.setStyleSheet("background-color: #10b981;")
         self.btn_search.clicked.connect(self.start_lookup)
         
@@ -297,47 +183,63 @@ class KioskApp(QWidget):
         # 2. Patient Info Group (Có thể nhập thủ công)
         self.group_info = QGroupBox("Thông tin Bệnh nhân (Cho phép nhập tay)")
         info_layout = QVBoxLayout(self.group_info)
-        info_layout.setSpacing(10)
+        info_layout.setContentsMargins(12, 20, 12, 12)
+        info_layout.setSpacing(8)
 
         grid_layout = QGridLayout()
-        grid_layout.setSpacing(10)
+        grid_layout.setSpacing(8)
+        grid_layout.setContentsMargins(0, 0, 0, 0)
+        # Cột 0 (label) cố định chiều rộng vừa đủ, cột 1 (input) co giãn tự do
+        grid_layout.setColumnStretch(0, 0)
+        grid_layout.setColumnStretch(1, 1)
 
-        grid_layout.addWidget(QLabel("Mã BN:"), 0, 0)
+        lbl_ma = QLabel("Mã BN:")
+        lbl_ma.setMinimumWidth(70)
+        lbl_ma.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid_layout.addWidget(lbl_ma, 0, 0)
         self.edit_ma = QLineEdit()
-        self.edit_ma.setFixedHeight(38)
+        self.edit_ma.setMinimumHeight(38)
         self.edit_ma.setFont(QFont("Segoe UI", 11))
         grid_layout.addWidget(self.edit_ma, 0, 1)
 
-        grid_layout.addWidget(QLabel("Họ tên:"), 1, 0)
+        lbl_ten = QLabel("Họ tên:")
+        lbl_ten.setMinimumWidth(70)
+        lbl_ten.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid_layout.addWidget(lbl_ten, 1, 0)
         self.edit_ten = QLineEdit()
-        self.edit_ten.setFixedHeight(38)
+        self.edit_ten.setMinimumHeight(38)
         self.edit_ten.setFont(QFont("Segoe UI", 11))
         grid_layout.addWidget(self.edit_ten, 1, 1)
 
-        grid_layout.addWidget(QLabel("Tuổi:"), 2, 0)
+        lbl_tuoi = QLabel("Tuổi:")
+        lbl_tuoi.setMinimumWidth(70)
+        lbl_tuoi.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        grid_layout.addWidget(lbl_tuoi, 2, 0)
         self.edit_tuoi = QLineEdit()
-        self.edit_tuoi.setFixedHeight(38)
+        self.edit_tuoi.setMinimumHeight(38)
         self.edit_tuoi.setFont(QFont("Segoe UI", 11))
         grid_layout.addWidget(self.edit_tuoi, 2, 1)
         
         info_layout.addLayout(grid_layout)
 
-        info_layout.addWidget(QLabel("Các dịch vụ chỉ định (Tích chọn để phân phòng riêng):"))
+        lbl_dv = QLabel("Các dịch vụ chỉ định (Tích chọn để phân phòng riêng):")
+        lbl_dv.setWordWrap(True)
+        info_layout.addWidget(lbl_dv)
         self.edit_dich_vu = DeletableListWidget()
-        self.edit_dich_vu.setFixedHeight(100)
+        self.edit_dich_vu.setMinimumHeight(100)
         info_layout.addWidget(self.edit_dich_vu)
 
         # Khung thêm dịch vụ thủ công
         add_service_layout = QHBoxLayout()
         self.edit_new_service = QLineEdit()
         self.edit_new_service.setPlaceholderText("Nhập thêm dịch vụ thủ công...")
-        self.edit_new_service.setFixedHeight(30)
+        self.edit_new_service.setMinimumHeight(30)
         self.edit_new_service.setFont(QFont("Segoe UI", 9))
         self.edit_new_service.returnPressed.connect(self.add_manual_service)
 
         self.btn_add_service = QPushButton("+")
         self.btn_add_service.setFixedWidth(40)
-        self.btn_add_service.setFixedHeight(30)
+        self.btn_add_service.setMinimumHeight(30)
         self.btn_add_service.setStyleSheet("background-color: #3b82f6; font-size: 14px; padding: 0;")
         self.btn_add_service.clicked.connect(self.add_manual_service)
 
@@ -366,7 +268,7 @@ class KioskApp(QWidget):
         for i in range(1, 6):
             btn = QPushButton(f"PHÒNG SIÊU ÂM {i}")
             btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
-            btn.setFixedHeight(50)
+            btn.setMinimumHeight(50)
             btn.setStyleSheet(room_colors[str(i)])
             btn.clicked.connect(lambda checked=False, r=str(i): self.push_to_room(r))
             self.room_buttons.append(btn)
@@ -380,16 +282,37 @@ class KioskApp(QWidget):
         layout.addWidget(group_rooms)
 
         # 4. Status Bar and logs
-        self.status_log = QLabel("Hệ thống đồng bộ Firestore sẵn sàng. Chờ quét mã.")
+        self.status_log = QLabel("He thong dong bo Firestore san sang. Cho quet ma.")
         self.status_log.setFont(QFont("Consolas", 10))
-        self.status_log.setStyleSheet("color: #94a3b8; border: 1px solid #1e293b; padding: 10px; background-color: #0f172a; border-radius: 8px;")
+        self.status_log.setStyleSheet(
+            "color: #94a3b8; border: 1px solid #1e293b; padding: 8px 10px;"
+            "background-color: #0f172a; border-radius: 8px;"
+        )
         self.status_log.setWordWrap(True)
+        self.status_log.setMinimumHeight(48)
+        self.status_log.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         layout.addWidget(self.status_log)
 
         # Kết nối Signals
         self.push_success.connect(self.on_push_success)
         self.push_failed.connect(self.on_push_failed)
         self.counts_updated.connect(self.update_room_waiting_counts)
+
+        # Khởi tạo HIS Bridge — thay thế Selenium (tự động ưu tiên ProgramData)
+        try:
+            his_config = HisConfig.load()
+        except Exception:
+            his_config = HisConfig.load(None)  # Defaults
+
+        self._bridge = HisBridge(config=his_config, parent=self)
+        self._bridge.patient_found.connect(self._on_bridge_patient_found)
+        self._bridge.bridge_error.connect(self._on_bridge_error)
+        self._bridge.his_connected.connect(self._on_his_status)
+        self._bridge.processing.connect(self._on_bridge_processing)
+        self._bridge.start()
+
+        # Lưu trạng thái PatientInfo hiện tại
+        self._current_patient: PatientInfo | None = None
 
         # Auto select entry_search
         self.entry_search.setFocus()
@@ -400,59 +323,181 @@ class KioskApp(QWidget):
         self.poll_timer.start(10000)  # Cập nhật mỗi 10 giây
         QTimer.singleShot(500, self.refresh_counts_async)
 
+        # Trạng thái HIS connection
+        self._his_connected = False
+
+        # Khởi chạy Timer tự động kiểm tra và phục hồi các App phụ trợ (Chrome Debug, Session Watcher, HIS Bridge)
+        self.health_timer = QTimer(self)
+        self.health_timer.timeout.connect(self.check_and_heal_subservices)
+        self.health_timer.start(10000)  # Kiểm tra mỗi 10 giây
+        QTimer.singleShot(1000, self.check_and_heal_subservices)
+
     def log(self, text):
         now = datetime.now().strftime("%H:%M:%S")
         self.status_log.setText(f"[{now}] {text}")
 
+    def check_and_heal_subservices(self):
+        """Kiểm tra và tự động khởi động/tự phục hồi các app phụ trợ (Chrome Debug 9222, Session Watcher, HIS Bridge)."""
+        from his_lookup import is_port_open, open_chrome_debug
+
+        # 1. Kiểm tra & Khởi động Chrome Debugging Port 9222
+        if is_port_open(9222):
+            self.badge_chrome.setText("🌐 Chrome 9222: 🟢 OK")
+            self.badge_chrome.setStyleSheet("color: #10b981; background: #064e3b; padding: 3px 6px; border-radius: 4px;")
+        else:
+            self.badge_chrome.setText("🌐 Chrome 9222: 🟡 Khởi động...")
+            self.badge_chrome.setStyleSheet("color: #f59e0b; background: #78350f; padding: 3px 6px; border-radius: 4px;")
+            self.log("⚠️ Phát hiện Chrome Debug 9222 chưa mở -> Tự động khởi động Chrome...")
+            def launch_chrome():
+                if open_chrome_debug():
+                    self.log("🟢 Đã mở Chrome Remote Debugging (Port 9222) thành công.")
+                else:
+                    self.log("🔴 Không thể khởi động Chrome Remote Debugging.")
+            threading.Thread(target=launch_chrome, daemon=True).start()
+
+        # 2. Kiểm tra & Khởi động Session Watcher (session_watcher.py)
+        if self._is_session_watcher_running():
+            self.badge_watcher.setText("👁 Watcher: 🟢 OK")
+            self.badge_watcher.setStyleSheet("color: #10b981; background: #064e3b; padding: 3px 6px; border-radius: 4px;")
+        else:
+            self.badge_watcher.setText("👁 Watcher: 🟡 Khởi động...")
+            self.badge_watcher.setStyleSheet("color: #f59e0b; background: #78350f; padding: 3px 6px; border-radius: 4px;")
+            self.log("⚠️ Phát hiện Session Watcher chưa chạy -> Tự động kích hoạt session_watcher.py...")
+            self._launch_session_watcher()
+
+        # 3. Trạng thái HIS Bridge RestService
+        if self._his_connected:
+            self.badge_his.setText("🏥 HIS Rest: 🟢 OK")
+            self.badge_his.setStyleSheet("color: #10b981; background: #064e3b; padding: 3px 6px; border-radius: 4px;")
+        else:
+            self.badge_his.setText("🏥 HIS Rest: 🟡 Chờ Session")
+            self.badge_his.setStyleSheet("color: #f59e0b; background: #78350f; padding: 3px 6px; border-radius: 4px;")
+
+    def _is_session_watcher_running(self) -> bool:
+        """Kiểm tra xem process session_watcher có đang chạy hay không."""
+        try:
+            import psutil
+            for proc in psutil.process_iter(['name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline') or []
+                    cmdline_str = " ".join([str(a) for a in cmdline]).lower()
+                    if 'session_watcher' in cmdline_str or '--session-watcher' in cmdline_str:
+                        return True
+                except Exception:
+                    continue
+        except Exception:
+            try:
+                output = subprocess.check_output('wmic process get commandline', shell=True, text=True, errors='ignore')
+                output_lower = output.lower()
+                if 'session_watcher' in output_lower or '--session-watcher' in output_lower:
+                    return True
+            except Exception:
+                pass
+        return False
+
+    def _launch_session_watcher(self):
+        """Kích hoạt session_watcher ngầm trong background process (hỗ trợ cả Dev Mode lẫn PyInstaller EXE Mode)."""
+        try:
+            creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            if getattr(sys, 'frozen', False):
+                # Trong môi trường đóng gói PyInstaller EXE: khởi chạy file EXE chính kèm cờ --session-watcher
+                subprocess.Popen([sys.executable, "--session-watcher"], creationflags=creationflags)
+                self.log("🟢 Đã kích hoạt Session Watcher ngầm (môi trường EXE) thành công.")
+                return True
+            else:
+                # Trong môi trường Dev (chạy file .py)
+                script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "session_watcher.py")
+                if os.path.exists(script_path):
+                    subprocess.Popen([sys.executable, script_path], creationflags=creationflags)
+                    self.log("🟢 Đã kích hoạt Session Watcher ngầm (môi trường Dev) thành công.")
+                    return True
+                else:
+                    self.log(f"🔴 Không tìm thấy file script: {script_path}")
+        except Exception as e:
+            self.log(f"🔴 Lỗi kích hoạt Session Watcher: {e}")
+        return False
+
     def start_lookup(self):
+        """Tra cứu bệnh nhân qua HIS Bridge (REST API, không Selenium)."""
         ma_bn = self.entry_search.text().strip()
         if not ma_bn:
             self.log("Vui lòng nhập hoặc quét Mã bệnh nhân!")
             return
-        
-        self.log(f"Đang tìm kiếm Mã BN '{ma_bn}' trên VNPT HIS...")
+
+        self.log(f"Đang tìm kiếm Mã BN '{ma_bn}' trên VNPT HIS (REST API)...")
         self.btn_search.setEnabled(False)
         self.entry_search.setEnabled(False)
-        
-        # Chạy thread tìm kiếm ngầm
-        self.thread = LookupThread(ma_bn)
-        self.thread.success.connect(self.on_lookup_success)
-        self.thread.error.connect(self.on_lookup_error)
-        self.thread.start()
 
-    @Slot(str, str, str, str)
-    def on_lookup_success(self, ten_bn, ngay_sinh, tuoi, dich_vu_str):
+        # Gọi HIS Bridge — async, không block UI
+        self._bridge.lookup(ma_bn)
+
+    @Slot(object)
+    def _on_bridge_patient_found(self, patient: PatientInfo):
+        """Callback khi HIS Bridge tìm thấy bệnh nhân."""
         self.btn_search.setEnabled(True)
         self.entry_search.setEnabled(True)
-        
-        self.edit_ma.setText(self.entry_search.text().strip())
-        self.edit_ten.setText(ten_bn)
-        self.edit_tuoi.setText(tuoi)
-        self.patient_ngay_sinh = ngay_sinh
-        
+
+        # Lưu PatientInfo hiện tại
+        self._current_patient = patient
+
+        self.edit_ma.setText(patient.patient_code)
+        self.edit_ten.setText(patient.patient_name)
+        self.edit_tuoi.setText(str(patient.age) if patient.age else "")
+        self.patient_ngay_sinh = ""
+
+        # Cập nhật danh sách dịch vụ
         self.edit_dich_vu.clear()
-        services = [s.strip() for s in dich_vu_str.split("\n") if s.strip()]
-        for s in services:
-            item = QListWidgetItem(s)
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Unchecked)
+        service_names = patient.service_names()
+        if service_names:
+            for s in service_names:
+                item = QListWidgetItem(s)
+                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                item.setCheckState(Qt.Unchecked)
+                self.edit_dich_vu.addItem(item)
+        else:
+            item = QListWidgetItem("Không tìm thấy dịch vụ chỉ định")
             self.edit_dich_vu.addItem(item)
-        
-        self.log(f"Tìm thấy bệnh nhân: {ten_bn} (Tuổi: {tuoi})")
+
+        self.log(
+            f"Tìm thấy: {patient.patient_name} "
+            f"(Tuổi: {patient.age}, {len(patient.services)} dịch vụ)"
+        )
         self.entry_search.clear()
 
     @Slot(str)
-    def on_lookup_error(self, err_msg):
+    def _on_bridge_error(self, err_msg: str):
+        """Callback khi HIS Bridge gặp lỗi."""
         self.btn_search.setEnabled(True)
         self.entry_search.setEnabled(True)
-        self.log(err_msg)
-        
+        self.log(f"HIS Bridge: {err_msg}")
+
+        # Cho phép nhập thủ công
         self.edit_ma.setText(self.entry_search.text().strip())
         self.edit_ten.clear()
         self.edit_tuoi.clear()
         self.edit_dich_vu.clear()
         self.patient_ngay_sinh = ""
+        self._current_patient = None
         self.edit_ten.setFocus()
+
+    @Slot(bool)
+    def _on_his_status(self, connected: bool):
+        """Cập nhật trạng thái kết nối HIS trên status bar và System Health Bar."""
+        self._his_connected = connected
+        if connected:
+            self.log("🟢 Đã kết nối VNPT HIS RestService")
+            self.badge_his.setText("🏥 HIS Rest: 🟢 OK")
+            self.badge_his.setStyleSheet("color: #10b981; background: #064e3b; padding: 3px 6px; border-radius: 4px;")
+        else:
+            self.log("🔴 Mất kết nối VNPT HIS — kiểm tra mạng hoặc session")
+            self.badge_his.setText("🏥 HIS Rest: 🟡 Chờ Session")
+            self.badge_his.setStyleSheet("color: #f59e0b; background: #78350f; padding: 3px 6px; border-radius: 4px;")
+
+    @Slot(bool)
+    def _on_bridge_processing(self, is_processing: bool):
+        """Vô hiệu hóa input khi bridge đang xử lý."""
+        self.btn_search.setEnabled(not is_processing)
+        self.entry_search.setEnabled(not is_processing)
 
     def add_manual_service(self):
         text = self.edit_new_service.text().strip()
@@ -590,9 +635,20 @@ class KioskApp(QWidget):
         self.log(f"Đồng bộ THẤT BẠI: {error_msg}")
         QMessageBox.critical(self, "Lỗi đồng bộ", f"Không thể lưu lên cơ sở dữ liệu Cloud của Phòng {room_num}.\nChi tiết: {error_msg}")
 
+    def closeEvent(self, event):
+        """Dừng HIS Bridge worker khi đóng cửa sổ."""
+        if hasattr(self, "_bridge"):
+            self._bridge.stop()
+        super().closeEvent(event)
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    kiosk = KioskApp()
-    kiosk.show()
-    sys.exit(app.exec())
+    if "--session-watcher" in sys.argv:
+        import session_watcher
+        session_watcher.main()
+    else:
+        # High DPI scaling configuration
+        QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+        app = QApplication(sys.argv)
+        kiosk = KioskApp()
+        kiosk.show()
+        sys.exit(app.exec())

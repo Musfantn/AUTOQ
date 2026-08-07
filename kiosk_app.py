@@ -10,7 +10,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTextEdit,
     QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QMessageBox, QFrame,
-    QListWidget, QListWidgetItem
+    QListWidget, QListWidgetItem, QDialog, QScrollArea
 )
 from PySide6.QtCore import Qt, QThread, Signal, Slot, QTimer
 from PySide6.QtGui import QFont, QIcon
@@ -20,6 +20,382 @@ from his_bridge.config import HisConfig
 from his_bridge.models import PatientInfo
 
 import firestore_queue
+
+
+# =============================================================================
+# WORKER THREAD FETCH DANH SÁCH BỆNH NHÂN BẤT ĐỒNG BỘ
+# =============================================================================
+class QueueFetchWorker(QThread):
+    """Worker thread fetching queue data for all rooms in background."""
+    data_loaded = Signal(dict)
+
+    def run(self):
+        result = {}
+        for r in range(1, 6):
+            room_str = str(r)
+            try:
+                data = firestore_queue.get_room_queue(room_str)
+                result[room_str] = data or {}
+            except Exception:
+                result[room_str] = {}
+        self.data_loaded.emit(result)
+
+
+# =============================================================================
+# CỬA SỔ HIỂN THỊ DANH SÁCH BỆNH NHÂN TIẾP NHẬN THEO PHÒNG
+# =============================================================================
+class PatientQueueDialog(QDialog):
+    """Cửa sổ hiển thị danh sách bệnh nhân đã được tiếp nhận chia theo từng cột của 5 phòng."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("DANH SÁCH BỆNH NHÂN ĐÃ TIẾP NHẬN THEO PHÒNG")
+        self.resize(1180, 720)
+        self.setMinimumSize(950, 600)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #0f172a;
+                color: #e2e8f0;
+                font-family: "Segoe UI", Arial, sans-serif;
+            }
+            QLabel {
+                color: #e2e8f0;
+            }
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #1e293b;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #475569;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #64748b;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QPushButton {
+                background-color: #0284c7;
+                color: white;
+                font-weight: bold;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #0369a1;
+            }
+            QPushButton:pressed {
+                background-color: #075985;
+            }
+        """)
+
+        self.room_colors = {
+            "1": {"bg": "#0284c7", "header": "#0369a1", "border": "#38bdf8"},
+            "2": {"bg": "#059669", "header": "#047857", "border": "#34d399"},
+            "3": {"bg": "#7c3aed", "header": "#6d28d9", "border": "#a78bfa"},
+            "4": {"bg": "#db2777", "header": "#be185d", "border": "#f472b6"},
+            "5": {"bg": "#d97706", "header": "#b45309", "border": "#fbbf24"},
+        }
+
+        self._build_ui()
+
+        # Timer auto-refresh mỗi 5s
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.fetch_data_async)
+        self.timer.start(5000)
+
+        # Nạp dữ liệu lần đầu
+        self.fetch_data_async()
+
+    def _build_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(12)
+
+        # Top Bar
+        top_bar = QHBoxLayout()
+        top_bar.setSpacing(12)
+
+        title_lbl = QLabel("📋 DANH SÁCH BỆNH NHÂN TIẾP NHẬN THEO PHÒNG")
+        title_lbl.setFont(QFont("Segoe UI", 15, QFont.Bold))
+        title_lbl.setStyleSheet("color: #38bdf8;")
+
+        self.lbl_total_count = QLabel("Tổng cộng: 0 BN")
+        self.lbl_total_count.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        self.lbl_total_count.setStyleSheet(
+            "color: #10b981; background: #064e3b; padding: 4px 12px; border-radius: 6px;"
+        )
+
+        self.lbl_status = QLabel("⏳ Đang cập nhật...")
+        self.lbl_status.setFont(QFont("Segoe UI", 10))
+        self.lbl_status.setStyleSheet("color: #94a3b8;")
+
+        btn_refresh = QPushButton("🔄 Làm mới")
+        btn_refresh.setCursor(Qt.PointingHandCursor)
+        btn_refresh.clicked.connect(self.fetch_data_async)
+
+        top_bar.addWidget(title_lbl)
+        top_bar.addWidget(self.lbl_total_count)
+        top_bar.addStretch()
+        top_bar.addWidget(self.lbl_status)
+        top_bar.addWidget(btn_refresh)
+
+        main_layout.addLayout(top_bar)
+
+        # Container cho 5 cột phòng
+        columns_layout = QHBoxLayout()
+        columns_layout.setSpacing(10)
+
+        self.column_widgets = {}
+        self.column_scroll_layouts = {}
+        self.column_count_labels = {}
+
+        for r in range(1, 6):
+            room_str = str(r)
+            color_info = self.room_colors[room_str]
+
+            # Container phòng
+            col_frame = QFrame()
+            col_frame.setStyleSheet("""
+                QFrame {
+                    background-color: #1e293b;
+                    border: 1px solid #334155;
+                    border-radius: 10px;
+                }
+            """)
+            col_vlayout = QVBoxLayout(col_frame)
+            col_vlayout.setContentsMargins(8, 8, 8, 8)
+            col_vlayout.setSpacing(8)
+
+            # Room Header Badge
+            header_frame = QFrame()
+            header_frame.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {color_info['bg']};
+                    border-radius: 6px;
+                    padding: 6px;
+                }}
+            """)
+            header_layout = QHBoxLayout(header_frame)
+            header_layout.setContentsMargins(8, 4, 8, 4)
+
+            lbl_room_title = QLabel(f"PHÒNG SIÊU ÂM {r}")
+            lbl_room_title.setFont(QFont("Segoe UI", 11, QFont.Bold))
+            lbl_room_title.setStyleSheet("color: white;")
+
+            lbl_count = QLabel("0 BN")
+            lbl_count.setFont(QFont("Segoe UI", 10, QFont.Bold))
+            lbl_count.setStyleSheet(
+                "color: white; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px;"
+            )
+            self.column_count_labels[room_str] = lbl_count
+
+            header_layout.addWidget(lbl_room_title)
+            header_layout.addStretch()
+            header_layout.addWidget(lbl_count)
+
+            col_vlayout.addWidget(header_frame)
+
+            # Scroll Area cho danh sách bệnh nhân
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll_content = QWidget()
+            scroll_layout = QVBoxLayout(scroll_content)
+            scroll_layout.setContentsMargins(4, 4, 4, 4)
+            scroll_layout.setSpacing(6)
+            scroll_layout.addStretch()
+            scroll.setWidget(scroll_content)
+
+            col_vlayout.addWidget(scroll)
+
+            self.column_scroll_layouts[room_str] = scroll_layout
+            self.column_widgets[room_str] = col_frame
+
+            columns_layout.addWidget(col_frame, 1)
+
+        main_layout.addLayout(columns_layout, 1)
+
+    def fetch_data_async(self):
+        self.lbl_status.setText("⏳ Đang tải dữ liệu...")
+        self.worker = QueueFetchWorker()
+        self.worker.data_loaded.connect(self.on_data_loaded)
+        self.worker.start()
+
+    @Slot(dict)
+    def on_data_loaded(self, rooms_data):
+        now_str = datetime.now().strftime("%H:%M:%S")
+        self.lbl_status.setText(f"Cập nhật lúc {now_str}")
+
+        total_patients = 0
+
+        for r in range(1, 6):
+            room_str = str(r)
+            data = rooms_data.get(room_str, {})
+            scroll_layout = self.column_scroll_layouts[room_str]
+
+            # Clear old items in layout
+            while scroll_layout.count() > 0:
+                item = scroll_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+
+            current_calling = data.get("current_calling")
+            waiting_list = data.get("waiting_list", [])
+
+            room_total = (1 if current_calling else 0) + len(waiting_list)
+            total_patients += room_total
+
+            self.column_count_labels[room_str].setText(f"{room_total} BN")
+
+            # 1. Hiển thị Bệnh nhân Đang khám (nếu có)
+            if current_calling:
+                calling_card = QFrame()
+                calling_card.setStyleSheet("""
+                    QFrame {
+                        background-color: #064e3b;
+                        border: 2px solid #10b981;
+                        border-radius: 8px;
+                    }
+                """)
+                cc_layout = QVBoxLayout(calling_card)
+                cc_layout.setContentsMargins(8, 8, 8, 8)
+                cc_layout.setSpacing(4)
+
+                stt = current_calling.get("stt", "---")
+                name = current_calling.get("ten_bn", "Chưa rõ")
+                ma_bn = current_calling.get("ma_bn", "")
+                dich_vu = current_calling.get("dich_vu", "")
+
+                header_row = QHBoxLayout()
+                badge_status = QLabel("🟢 ĐANG KHÁM")
+                badge_status.setFont(QFont("Segoe UI", 9, QFont.Bold))
+                badge_status.setStyleSheet("color: #34d399;")
+
+                stt_lbl = QLabel(f"STT {stt}")
+                stt_lbl.setFont(QFont("Segoe UI", 11, QFont.Bold))
+                stt_lbl.setStyleSheet("color: #fbbf24;")
+
+                header_row.addWidget(badge_status)
+                header_row.addStretch()
+                header_row.addWidget(stt_lbl)
+                cc_layout.addLayout(header_row)
+
+                name_lbl = QLabel(name.upper())
+                name_lbl.setFont(QFont("Segoe UI", 11, QFont.Bold))
+                name_lbl.setStyleSheet("color: white;")
+                name_lbl.setWordWrap(True)
+                cc_layout.addWidget(name_lbl)
+
+                if ma_bn:
+                    code_lbl = QLabel(f"Mã BN: {ma_bn}")
+                    code_lbl.setFont(QFont("Segoe UI", 9))
+                    code_lbl.setStyleSheet("color: #94a3b8;")
+                    cc_layout.addWidget(code_lbl)
+
+                if dich_vu:
+                    dv_clean = dich_vu.replace('\n', ', ')
+                    dv_lbl = QLabel(f"DV: {dv_clean}")
+                    dv_lbl.setFont(QFont("Segoe UI", 9))
+                    dv_lbl.setStyleSheet("color: #cbd5e1;")
+                    dv_lbl.setWordWrap(True)
+                    cc_layout.addWidget(dv_lbl)
+
+                scroll_layout.addWidget(calling_card)
+
+            # 2. Hiển thị danh sách Đang chờ
+            if waiting_list:
+                lbl_waiting_title = QLabel(f"⏳ HÀNG CHỜ ({len(waiting_list)})")
+                lbl_waiting_title.setFont(QFont("Segoe UI", 9, QFont.Bold))
+                lbl_waiting_title.setStyleSheet("color: #94a3b8; margin-top: 6px; margin-bottom: 2px;")
+                scroll_layout.addWidget(lbl_waiting_title)
+
+                for idx, pat in enumerate(waiting_list, 1):
+                    pat_card = QFrame()
+                    pat_card.setStyleSheet("""
+                        QFrame {
+                            background-color: #0f172a;
+                            border: 1px solid #334155;
+                            border-radius: 6px;
+                        }
+                        QFrame:hover {
+                            border-color: #38bdf8;
+                            background-color: #1e293b;
+                        }
+                    """)
+                    pat_layout = QVBoxLayout(pat_card)
+                    pat_layout.setContentsMargins(8, 8, 8, 8)
+                    pat_layout.setSpacing(4)
+
+                    stt = pat.get("stt", f"{idx:03d}")
+                    name = pat.get("ten_bn", "Bệnh nhân")
+                    ma_bn = pat.get("ma_bn", "")
+                    tuoi = pat.get("tuoi", "")
+                    dich_vu = pat.get("dich_vu", "")
+
+                    top_row = QHBoxLayout()
+                    top_row.setSpacing(6)
+
+                    stt_badge = QLabel(f"#{stt}")
+                    stt_badge.setFont(QFont("Segoe UI", 10, QFont.Bold))
+                    stt_badge.setStyleSheet(
+                        "color: #38bdf8; background: #0284c7; padding: 2px 6px; border-radius: 4px;"
+                    )
+
+                    name_lbl = QLabel(name)
+                    name_lbl.setFont(QFont("Segoe UI", 10, QFont.Bold))
+                    name_lbl.setStyleSheet("color: #f8fafc;")
+                    name_lbl.setWordWrap(True)
+
+                    top_row.addWidget(stt_badge)
+                    top_row.addWidget(name_lbl, 1)
+                    pat_layout.addLayout(top_row)
+
+                    sub_info = []
+                    if ma_bn:
+                        sub_info.append(f"Mã: {ma_bn}")
+                    if tuoi:
+                        sub_info.append(f"Tuổi: {tuoi}")
+
+                    if sub_info:
+                        sub_lbl = QLabel(" | ".join(sub_info))
+                        sub_lbl.setFont(QFont("Segoe UI", 9))
+                        sub_lbl.setStyleSheet("color: #94a3b8;")
+                        pat_layout.addWidget(sub_lbl)
+
+                    if dich_vu:
+                        dv_clean = dich_vu.replace('\n', ', ')
+                        dv_lbl = QLabel(f"DV: {dv_clean}")
+                        dv_lbl.setFont(QFont("Segoe UI", 8))
+                        dv_lbl.setStyleSheet("color: #64748b;")
+                        dv_lbl.setWordWrap(True)
+                        pat_layout.addWidget(dv_lbl)
+
+                    scroll_layout.addWidget(pat_card)
+            elif not current_calling:
+                empty_lbl = QLabel("Chưa có bệnh nhân")
+                empty_lbl.setAlignment(Qt.AlignCenter)
+                empty_lbl.setFont(QFont("Segoe UI", 10))
+                empty_lbl.setStyleSheet("color: #64748b; padding: 20px 0;")
+                scroll_layout.addWidget(empty_lbl)
+
+            scroll_layout.addStretch()
+
+        self.lbl_total_count.setText(f"Tổng cộng: {total_patients} BN")
+
+    def closeEvent(self, event):
+        if hasattr(self, 'timer') and self.timer:
+            self.timer.stop()
+        super().closeEvent(event)
 
 
 # =============================================================================
@@ -292,6 +668,31 @@ class KioskApp(QWidget):
         self.status_log.setMinimumHeight(48)
         self.status_log.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         layout.addWidget(self.status_log)
+
+        # 5. Nút Xem Danh sách bệnh nhân đã tiếp nhận theo phòng (phía dưới cùng)
+        self.btn_patient_list = QPushButton("📋 DANH SÁCH BỆNH NHÂN ĐÃ TIẾP NHẬN (THEO PHÒNG)")
+        self.btn_patient_list.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        self.btn_patient_list.setMinimumHeight(48)
+        self.btn_patient_list.setCursor(Qt.PointingHandCursor)
+        self.btn_patient_list.setStyleSheet("""
+            QPushButton {
+                background-color: #0284c7;
+                color: #ffffff;
+                border: 1px solid #38bdf8;
+                border-radius: 8px;
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #0369a1;
+                border-color: #7dd3fc;
+            }
+            QPushButton:pressed {
+                background-color: #075985;
+            }
+        """)
+        self.btn_patient_list.clicked.connect(self.open_patient_list)
+        layout.addWidget(self.btn_patient_list)
 
         # Kết nối Signals
         self.push_success.connect(self.on_push_success)
@@ -634,6 +1035,11 @@ class KioskApp(QWidget):
             
         self.log(f"Đồng bộ THẤT BẠI: {error_msg}")
         QMessageBox.critical(self, "Lỗi đồng bộ", f"Không thể lưu lên cơ sở dữ liệu Cloud của Phòng {room_num}.\nChi tiết: {error_msg}")
+
+    def open_patient_list(self):
+        """Mở cửa sổ hiển thị danh sách bệnh nhân tiếp nhận theo 5 phòng."""
+        dlg = PatientQueueDialog(parent=self)
+        dlg.exec()
 
     def closeEvent(self, event):
         """Dừng HIS Bridge worker khi đóng cửa sổ."""

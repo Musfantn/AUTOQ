@@ -1,21 +1,25 @@
+# =============================================================================
+# FILE: config_manager.py
+# MÔ TẢ: Quản lý cấu hình app, lưu vào SQLite local (config.db).
+# =============================================================================
+
 import sqlite3
 import os
 import sys
 
 
-def _get_db_dir() -> str:
-    """Trả về thư mục database trong APPDATA (khi chạy exe) hoặc cạnh main.py (khi dev).
-    
-    Lý do dùng APPDATA: khi cài vào Program Files, thư mục đó read-only,
-    app sẽ bị PermissionError nếu cố ghi database vào đó.
-    APPDATA luôn ghi được với user hiện tại.
+def get_db_dir() -> str:
+    """Trả về thư mục database.
+    - Ưu tiên %PROGRAMDATA%/AUTOQ/database/ (đảm bảo không bị lỗi Access Denied trên Windows)
+    - Fallback APPDATA/AUTOQ/database/ hoặc ./database/
     """
-    if getattr(sys, 'frozen', False):
-        # Đang chạy từ file exe đã cài – lưu database vào %APPDATA%\AUTOQ
+    programdata = os.environ.get("PROGRAMDATA")
+    if programdata:
+        base = os.path.join(programdata, "AUTOQ")
+    elif getattr(sys, 'frozen', False):
         appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
         base = os.path.join(appdata, "AUTOQ")
     else:
-        # Đang dev – lưu cạnh main.py
         base = os.path.abspath(".")
     db_dir = os.path.join(base, "database")
     os.makedirs(db_dir, exist_ok=True)
@@ -23,35 +27,34 @@ def _get_db_dir() -> str:
 
 
 class ConfigManager:
+    """Đọc/ghi cấu hình key-value vào SQLite."""
 
     def __init__(self):
-        db_path = os.path.join(_get_db_dir(), "config.db")
+        db_path = os.path.join(get_db_dir(), "config.db")
         self.conn = sqlite3.connect(db_path)
-
         self.conn.execute("""
-        CREATE TABLE IF NOT EXISTS config(
-        key TEXT PRIMARY KEY,
-        value TEXT
-        )
+            CREATE TABLE IF NOT EXISTS config(
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            )
         """)
 
-    def get(self,key,default=""):
-
-        cur=self.conn.cursor()
+    def get(self, key: str, default: str = "") -> str:
+        """Đọc giá trị config. Trả default nếu key không tồn tại."""
+        cur = self.conn.cursor()
         cur.execute("SELECT value FROM config WHERE key=?", (key,))
-        row=cur.fetchone()
+        row = cur.fetchone()
+        return row[0] if row else default
 
-        if row:
-            return row[0]
-
-        return default
-
-
-    def set(self,key,value):
-
+    def set(self, key: str, value) -> None:
+        """Ghi giá trị config (upsert)."""
         self.conn.execute(
             "REPLACE INTO config VALUES(?,?)",
-            (key,str(value))
+            (key, str(value))
         )
-
         self.conn.commit()
+
+    def close(self) -> None:
+        """Đóng kết nối database an toàn."""
+        if self.conn:
+            self.conn.close()

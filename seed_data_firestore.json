@@ -1,0 +1,2588 @@
+{
+  "autoq_queues": {
+    "documents": [
+      {
+        "name": "projects/tasksched/databases/(default)/documents/autoq_queues/room_1",
+        "fields": {
+          "date": {
+            "stringValue": "2026-07-12"
+          },
+          "last_number": {
+            "integerValue": "0"
+          },
+          "current_calling": {
+            "nullValue": null
+          },
+          "room": {
+            "stringValue": "1"
+          },
+          "waiting_list": {
+            "arrayValue": {}
+          }
+        },
+        "createTime": "2026-06-19T16:01:06.475527Z",
+        "updateTime": "2026-07-12T16:02:22.134081Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/autoq_queues/room_2",
+        "fields": {
+          "date": {
+            "stringValue": "2026-07-12"
+          },
+          "last_number": {
+            "integerValue": "0"
+          },
+          "room": {
+            "stringValue": "2"
+          },
+          "current_calling": {
+            "nullValue": null
+          },
+          "waiting_list": {
+            "arrayValue": {}
+          }
+        },
+        "createTime": "2026-06-19T17:02:50.001333Z",
+        "updateTime": "2026-07-12T16:02:22.338702Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/autoq_queues/room_3",
+        "fields": {
+          "date": {
+            "stringValue": "2026-07-12"
+          },
+          "last_number": {
+            "integerValue": "0"
+          },
+          "current_calling": {
+            "nullValue": null
+          },
+          "room": {
+            "stringValue": "3"
+          },
+          "waiting_list": {
+            "arrayValue": {}
+          }
+        },
+        "createTime": "2026-06-19T15:59:28.590539Z",
+        "updateTime": "2026-07-12T16:02:22.574955Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/autoq_queues/room_4",
+        "fields": {
+          "room": {
+            "stringValue": "4"
+          },
+          "current_calling": {
+            "nullValue": null
+          },
+          "waiting_list": {
+            "arrayValue": {}
+          },
+          "date": {
+            "stringValue": "2026-07-12"
+          },
+          "last_number": {
+            "integerValue": "0"
+          }
+        },
+        "createTime": "2026-06-19T17:02:51.162430Z",
+        "updateTime": "2026-07-12T16:02:22.835241Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/autoq_queues/room_5",
+        "fields": {
+          "waiting_list": {
+            "arrayValue": {}
+          },
+          "room": {
+            "stringValue": "5"
+          },
+          "current_calling": {
+            "nullValue": null
+          },
+          "last_number": {
+            "integerValue": "0"
+          },
+          "date": {
+            "stringValue": "2026-07-12"
+          }
+        },
+        "createTime": "2026-06-19T17:02:51.792329Z",
+        "updateTime": "2026-07-12T16:02:23.081845Z"
+      }
+    ]
+  },
+  "personnel": {
+    "documents": [
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/49UmOJrYSSz7EYHH4h2u",
+        "fields": {
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:45:42.188Z"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-12T15:45:42.188Z"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "role": {
+            "stringValue": "secretary"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "color": {
+            "stringValue": "#0ea5e9"
+          },
+          "name": {
+            "stringValue": "Thanh"
+          },
+          "specialty": {
+            "nullValue": null
+          },
+          "phone": {
+            "stringValue": ""
+          }
+        },
+        "createTime": "2026-07-12T15:45:42.204448Z",
+        "updateTime": "2026-07-12T15:45:42.204448Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/ARamRfRMC5GGjNVC62PQ",
+        "fields": {
+          "createdAt": {
+            "timestampValue": "2026-06-03T15:53:45.433Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-06-03T15:53:45.433Z"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "specialty": {
+            "stringValue": "cardio"
+          },
+          "name": {
+            "stringValue": "Hà Huy Hiệu"
+          },
+          "phone": {
+            "stringValue": "0973 306 265"
+          },
+          "role": {
+            "stringValue": "doctor"
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-06-03T15:53:45.450591Z",
+        "updateTime": "2026-06-03T15:53:45.450591Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/CoPkRtzQzE711o1KJRja",
+        "fields": {
+          "createdAt": {
+            "timestampValue": "2026-06-23T03:44:41.230Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-06-23T03:44:41.230Z"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "name": {
+            "stringValue": "Dương Thành Long"
+          },
+          "specialty": {
+            "stringValue": "cardio"
+          },
+          "phone": {
+            "stringValue": "0329 326 499"
+          },
+          "role": {
+            "stringValue": "doctor"
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-06-23T03:44:41.246744Z",
+        "updateTime": "2026-06-23T03:44:41.246744Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/Mv4jqQt5OYkmWRAS5lPm",
+        "fields": {
+          "createdAt": {
+            "timestampValue": "2026-05-24T13:04:02.812Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-05-24T13:04:02.812Z"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "specialty": {
+            "nullValue": null
+          },
+          "name": {
+            "stringValue": "Trang"
+          },
+          "phone": {
+            "stringValue": ""
+          },
+          "role": {
+            "stringValue": "secretary"
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-05-24T13:04:02.839663Z",
+        "updateTime": "2026-05-24T13:04:02.839663Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/Nc9ysLxPQlqfaCTrDWyt",
+        "fields": {
+          "createdAt": {
+            "timestampValue": "2026-05-30T15:58:58.200Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-05-30T15:58:58.200Z"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "name": {
+            "stringValue": "Thương"
+          },
+          "specialty": {
+            "nullValue": null
+          },
+          "phone": {
+            "stringValue": ""
+          },
+          "role": {
+            "stringValue": "secretary"
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-05-30T15:58:58.210007Z",
+        "updateTime": "2026-05-30T15:58:58.210007Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/Q64srwGLOt8aaxCZS5zX",
+        "fields": {
+          "role": {
+            "stringValue": "secretary"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "createdAt": {
+            "stringValue": "2026-07-12T15:44:38.251Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:44:52.021Z"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "phone": {
+            "stringValue": ""
+          },
+          "color": {
+            "stringValue": "#4f46e5"
+          },
+          "name": {
+            "stringValue": "Thư"
+          },
+          "specialty": {
+            "nullValue": null
+          }
+        },
+        "createTime": "2026-07-12T15:44:39.693744Z",
+        "updateTime": "2026-07-12T15:44:52.027354Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/Z0G4QUX1ESOI354dV84m",
+        "fields": {
+          "phone": {
+            "stringValue": ""
+          },
+          "role": {
+            "stringValue": "secretary"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "createdAt": {
+            "timestampValue": "2026-05-24T13:03:06.840Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-05-24T13:03:06.840Z"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "name": {
+            "stringValue": "Duyên"
+          },
+          "specialty": {
+            "nullValue": null
+          }
+        },
+        "createTime": "2026-05-24T13:03:06.854777Z",
+        "updateTime": "2026-05-24T13:03:06.854777Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/cAFLQYTVcKNkku8lFh33",
+        "fields": {
+          "createdAt": {
+            "timestampValue": "2026-05-30T16:04:21.548Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-05-30T16:04:21.548Z"
+          },
+          "name": {
+            "stringValue": "Na"
+          },
+          "specialty": {
+            "nullValue": null
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "role": {
+            "stringValue": "secretary"
+          },
+          "phone": {
+            "stringValue": ""
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-05-30T16:04:21.578036Z",
+        "updateTime": "2026-05-30T16:04:21.578036Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/doc-002",
+        "fields": {
+          "phone": {
+            "stringValue": "0987 806 143"
+          },
+          "role": {
+            "stringValue": "doctor"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.234Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:43:12.063Z"
+          },
+          "email": {
+            "stringValue": "nguyen.viet.phuong@hospital.vn"
+          },
+          "name": {
+            "stringValue": "BS. Nguyễn Việt Phương"
+          },
+          "specialty": {
+            "stringValue": "cardio"
+          }
+        },
+        "createTime": "2026-05-22T15:19:45.321047Z",
+        "updateTime": "2026-07-12T15:43:12.075366Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/doc-003",
+        "fields": {
+          "isActive": {
+            "booleanValue": true
+          },
+          "phone": {
+            "stringValue": "0327 815 067"
+          },
+          "role": {
+            "stringValue": "doctor"
+          },
+          "email": {
+            "stringValue": "le.van.linh@hospital.vn"
+          },
+          "specialty": {
+            "stringValue": "obgyn"
+          },
+          "name": {
+            "stringValue": "BS. Lê Văn Linh"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.234Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:43:38.935Z"
+          }
+        },
+        "createTime": "2026-05-22T15:19:45.321047Z",
+        "updateTime": "2026-07-12T15:43:38.950490Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/doc-004",
+        "fields": {
+          "isActive": {
+            "booleanValue": true
+          },
+          "phone": {
+            "stringValue": "0987 871 697"
+          },
+          "role": {
+            "stringValue": "doctor"
+          },
+          "email": {
+            "stringValue": "duong.kim.oanh@hospital.vn"
+          },
+          "name": {
+            "stringValue": "BS. Dương T Kim Oanh"
+          },
+          "specialty": {
+            "stringValue": "obgyn"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.234Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:43:46.808Z"
+          }
+        },
+        "createTime": "2026-05-22T15:19:45.321047Z",
+        "updateTime": "2026-07-12T15:43:46.816871Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/doc-005",
+        "fields": {
+          "role": {
+            "stringValue": "doctor"
+          },
+          "phone": {
+            "stringValue": "0868 871 399"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.234Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:43:22.285Z"
+          },
+          "specialty": {
+            "stringValue": "obgyn"
+          },
+          "name": {
+            "stringValue": "BS. Nguyễn Thị Mỹ Hạnh"
+          },
+          "email": {
+            "stringValue": "nguyen.my.hanh@hospital.vn"
+          }
+        },
+        "createTime": "2026-05-22T15:19:45.321047Z",
+        "updateTime": "2026-07-12T15:43:22.298472Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/doc-006",
+        "fields": {
+          "role": {
+            "stringValue": "secretary"
+          },
+          "phone": {
+            "stringValue": "0906789012"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "createdAt": {
+            "timestampValue": "2026-05-22T15:19:45.011Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-05-24T13:02:00.583Z"
+          },
+          "specialty": {
+            "nullValue": null
+          },
+          "name": {
+            "stringValue": "Trâm"
+          },
+          "email": {
+            "stringValue": ""
+          }
+        },
+        "createTime": "2026-05-22T15:19:45.321047Z",
+        "updateTime": "2026-05-24T13:02:00.604778Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/doc-007",
+        "fields": {
+          "isActive": {
+            "booleanValue": true
+          },
+          "role": {
+            "stringValue": "doctor"
+          },
+          "phone": {
+            "stringValue": "0867 489 896"
+          },
+          "name": {
+            "stringValue": "BS. Mai Quốc Tuấn"
+          },
+          "specialty": {
+            "stringValue": "obgyn"
+          },
+          "email": {
+            "stringValue": "mai.quoc.tuan@hospital.vn"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.234Z"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:43:31.594Z"
+          }
+        },
+        "createTime": "2026-05-22T15:19:45.321047Z",
+        "updateTime": "2026-07-12T15:43:31.627556Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/personnel/rIGS9H842vgc2z3y2xNI",
+        "fields": {
+          "isActive": {
+            "booleanValue": true
+          },
+          "role": {
+            "stringValue": "doctor"
+          },
+          "email": {
+            "stringValue": ""
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:35:25.655Z"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-12T15:34:31.910Z"
+          },
+          "phone": {
+            "stringValue": ""
+          },
+          "name": {
+            "stringValue": "Võ T Thuý An"
+          },
+          "specialty": {
+            "stringValue": "obgyn"
+          },
+          "color": {
+            "stringValue": "#0891b2"
+          }
+        },
+        "createTime": "2026-07-12T15:34:31.941451Z",
+        "updateTime": "2026-07-12T15:35:25.686695Z"
+      }
+    ]
+  },
+  "rooms": {
+    "documents": [
+      {
+        "name": "projects/tasksched/databases/(default)/documents/rooms/room-01",
+        "fields": {
+          "equipment": {
+            "stringValue": "Máy siêu âm Logiq F8"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          },
+          "description": {
+            "stringValue": "Siêu âm tổng quát – ổ bụng, gan, thận, tuyến giáp"
+          },
+          "roomNumber": {
+            "integerValue": "1"
+          },
+          "specialty": {
+            "stringValue": "general"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:47:20.658Z"
+          },
+          "name": {
+            "stringValue": "Phòng Siêu âm 1"
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-05-22T15:19:44.941168Z",
+        "updateTime": "2026-07-12T15:47:20.677203Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/rooms/room-02",
+        "fields": {
+          "roomNumber": {
+            "integerValue": "2"
+          },
+          "specialty": {
+            "stringValue": "general"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:47:31.094Z"
+          },
+          "name": {
+            "stringValue": "Phòng Siêu âm 2"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "description": {
+            "stringValue": "Siêu âm tổng quát – ổ bụng, tiết niệu, phần mềm"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          },
+          "equipment": {
+            "stringValue": "Máy siêu âm GE Voluson S8"
+          }
+        },
+        "createTime": "2026-05-22T15:19:44.941168Z",
+        "updateTime": "2026-07-12T15:47:31.138097Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/rooms/room-03",
+        "fields": {
+          "description": {
+            "stringValue": "Siêu âm Sản phụ khoa – thai kỳ, tử cung, buồng trứng"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          },
+          "equipment": {
+            "stringValue": "Máy siêu âm Voluson S18 (GE Healthcare)"
+          },
+          "roomNumber": {
+            "integerValue": "3"
+          },
+          "specialty": {
+            "stringValue": "obgyn"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:47:47.614Z"
+          },
+          "name": {
+            "stringValue": "Phòng Siêu âm 3"
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-05-22T15:19:44.941168Z",
+        "updateTime": "2026-07-12T15:47:47.619621Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/rooms/room-04",
+        "fields": {
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          },
+          "equipment": {
+            "stringValue": "Máy siêu âm tim Philips Afinity 50"
+          },
+          "description": {
+            "stringValue": "Siêu âm Tim & mạch máu – siêu âm tim, Doppler mạch"
+          },
+          "roomNumber": {
+            "integerValue": "4"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:48:12.193Z"
+          },
+          "specialty": {
+            "stringValue": "cardio"
+          },
+          "name": {
+            "stringValue": "Phòng Siêu âm 4"
+          },
+          "isActive": {
+            "booleanValue": true
+          }
+        },
+        "createTime": "2026-05-22T15:19:44.941168Z",
+        "updateTime": "2026-07-12T15:48:12.227760Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/rooms/room-05",
+        "fields": {
+          "name": {
+            "stringValue": "Phòng Siêu âm 5"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "roomNumber": {
+            "integerValue": "5"
+          },
+          "specialty": {
+            "stringValue": "general"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:48:30.172Z"
+          },
+          "description": {
+            "stringValue": "Siêu âm tổng quát – vú, tuyến giáp, mô phần mềm"
+          },
+          "equipment": {
+            "stringValue": "Máy siêu âm xách tay KM"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          }
+        },
+        "createTime": "2026-05-22T15:19:44.941168Z",
+        "updateTime": "2026-07-12T15:48:30.215658Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/rooms/room-06",
+        "fields": {
+          "requiresSecretary": {
+            "booleanValue": false
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          },
+          "description": {
+            "stringValue": "Đọc kết quả phim X-Quang (không cần thư ký)"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          },
+          "equipment": {
+            "stringValue": "Hệ thống PACS / Máy tính chuyên dụng"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "name": {
+            "stringValue": "Đọc XQ"
+          },
+          "roomNumber": {
+            "integerValue": "6"
+          },
+          "specialty": {
+            "stringValue": "general"
+          }
+        },
+        "createTime": "2026-05-27T16:08:39.856131Z",
+        "updateTime": "2026-07-10T13:35:36.139843Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/rooms/room-07",
+        "fields": {
+          "description": {
+            "stringValue": "Siêu âm theo yêu cầu dịch vụ"
+          },
+          "createdAt": {
+            "timestampValue": "2026-07-10T13:35:36.087Z"
+          },
+          "equipment": {
+            "stringValue": "Máy siêu âm GE Logiq P9"
+          },
+          "name": {
+            "stringValue": "Phòng Siêu âm Yêu cầu"
+          },
+          "isActive": {
+            "booleanValue": true
+          },
+          "specialty": {
+            "stringValue": "request"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:48:43.151Z"
+          },
+          "roomNumber": {
+            "integerValue": "7"
+          }
+        },
+        "createTime": "2026-07-10T13:35:36.139843Z",
+        "updateTime": "2026-07-12T15:48:43.188211Z"
+      }
+    ]
+  },
+  "assignments": {
+    "documents": [
+      {
+        "name": "projects/tasksched/databases/(default)/documents/assignments/roster_2026-07",
+        "fields": {
+          "ultrasoundEmployees": {
+            "arrayValue": {
+              "values": [
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      },
+                      "name": {
+                        "stringValue": "BS. Dương T Kim Oanh"
+                      },
+                      "id": {
+                        "stringValue": "doc-004"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "BS. Lê Văn Linh"
+                      },
+                      "id": {
+                        "stringValue": "doc-003"
+                      },
+                      "color": {
+                        "stringValue": "#0ea5e9"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "doc-007"
+                      },
+                      "name": {
+                        "stringValue": "BS. Mai Quốc Tuấn"
+                      },
+                      "color": {
+                        "stringValue": "#10b981"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#f59e0b"
+                      },
+                      "id": {
+                        "stringValue": "doc-005"
+                      },
+                      "name": {
+                        "stringValue": "BS. Nguyễn Thị Mỹ Hạnh"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "BS. Nguyễn Việt Phương"
+                      },
+                      "id": {
+                        "stringValue": "doc-002"
+                      },
+                      "color": {
+                        "stringValue": "#ef4444"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#ec4899"
+                      },
+                      "name": {
+                        "stringValue": "Dương Thành Long"
+                      },
+                      "id": {
+                        "stringValue": "CoPkRtzQzE711o1KJRja"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#8b5cf6"
+                      },
+                      "id": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "name": {
+                        "stringValue": "Hà Huy Hiệu"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#0891b2"
+                      },
+                      "name": {
+                        "stringValue": "Võ Thuý An"
+                      },
+                      "id": {
+                        "stringValue": "rIGS9H842vgc2z3y2xNI"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "doc-001"
+                      },
+                      "name": {
+                        "stringValue": "Võ T Thuý An"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#f59e0b"
+                      },
+                      "name": {
+                        "stringValue": "Nguyễn Việt Phương"
+                      },
+                      "id": {
+                        "stringValue": "emp-1"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#0ea5e9"
+                      },
+                      "id": {
+                        "stringValue": "emp-2"
+                      },
+                      "name": {
+                        "stringValue": "Nguyễn Thị Mỹ Hạnh"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#10b981"
+                      },
+                      "name": {
+                        "stringValue": "Lê Văn Linh"
+                      },
+                      "id": {
+                        "stringValue": "emp-3"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#ec4899"
+                      },
+                      "id": {
+                        "stringValue": "emp-5"
+                      },
+                      "name": {
+                        "stringValue": "Mai Quốc Tuấn"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Dương T Kim Oanh"
+                      },
+                      "id": {
+                        "stringValue": "emp-1779642956794"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "type": {
+            "stringValue": "monthly_roster"
+          },
+          "year": {
+            "integerValue": "2026"
+          },
+          "month": {
+            "integerValue": "6"
+          },
+          "dutySchedule": {
+            "mapValue": {
+              "fields": {
+                "2026-06-23": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-5"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      }
+                    }
+                  }
+                },
+                "2026-07-23": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "CoPkRtzQzE711o1KJRja"
+                      }
+                    }
+                  }
+                },
+                "2026-06-14": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      }
+                    }
+                  }
+                },
+                "2026-07-31": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-004"
+                      }
+                    }
+                  }
+                },
+                "2026-06-08": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      }
+                    }
+                  }
+                },
+                "2026-06-06": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                },
+                "2026-06-25": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      }
+                    }
+                  }
+                },
+                "2026-07-10": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-003"
+                      }
+                    }
+                  }
+                },
+                "2026-06-11": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      }
+                    }
+                  }
+                },
+                "2026-07-02": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-005"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-16": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      }
+                    }
+                  }
+                },
+                "2026-07-27": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-003"
+                      }
+                    }
+                  }
+                },
+                "2026-07-21": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-003"
+                      }
+                    }
+                  }
+                },
+                "2026-07-13": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-004"
+                      }
+                    }
+                  }
+                },
+                "2026-07-01": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-003"
+                      }
+                    }
+                  }
+                },
+                "2026-06-16": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1779642956794"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-21": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      }
+                    }
+                  }
+                },
+                "2026-06-24": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1779642956794"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                },
+                "2026-06-07": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      }
+                    }
+                  }
+                },
+                "2026-07-24": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      }
+                    }
+                  }
+                },
+                "2026-07-28": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "CoPkRtzQzE711o1KJRja"
+                      }
+                    }
+                  }
+                },
+                "2026-06-30": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1779642956794"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                },
+                "2026-06-04": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-29": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-5"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      }
+                    }
+                  }
+                },
+                "2026-07-06": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-004"
+                      }
+                    }
+                  }
+                },
+                "2026-06-13": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      }
+                    }
+                  }
+                },
+                "2026-07-26": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-004"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-06-01": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      }
+                    }
+                  }
+                },
+                "2026-06-27": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      }
+                    }
+                  }
+                },
+                "2026-07-20": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-007"
+                      }
+                    }
+                  }
+                },
+                "2026-06-15": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-5"
+                      }
+                    }
+                  }
+                },
+                "2026-06-18": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                },
+                "2026-07-07": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-005"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-06-19": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      }
+                    }
+                  }
+                },
+                "2026-06-09": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      }
+                    }
+                  }
+                },
+                "2026-07-05": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-007"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-09": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-17": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-003"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-19": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "CoPkRtzQzE711o1KJRja"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-04": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      }
+                    }
+                  }
+                },
+                "2026-07-03": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-002"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-06-03": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      }
+                    }
+                  }
+                },
+                "2026-07-18": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-005"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-15": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-002"
+                      }
+                    }
+                  }
+                },
+                "2026-06-10": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-07-22": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-005"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-14": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-007"
+                      }
+                    }
+                  }
+                },
+                "2026-07-11": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-007"
+                      }
+                    }
+                  }
+                },
+                "2026-06-12": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                },
+                "2026-06-05": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      }
+                    }
+                  }
+                },
+                "2026-06-22": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      }
+                    }
+                  }
+                },
+                "2026-07-25": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-002"
+                      }
+                    }
+                  }
+                },
+                "2026-07-30": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-005"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-06-26": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-20": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      }
+                    }
+                  }
+                },
+                "2026-07-12": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "CoPkRtzQzE711o1KJRja"
+                      }
+                    }
+                  }
+                },
+                "2026-06-02": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-28": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-17": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      }
+                    }
+                  }
+                },
+                "2026-07-08": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-002"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      }
+                    }
+                  }
+                },
+                "2026-07-29": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": ""
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "doc-002"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "xrayEmployees": {
+            "arrayValue": {
+              "values": [
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#10b981"
+                      },
+                      "id": {
+                        "stringValue": "xray-1"
+                      },
+                      "name": {
+                        "stringValue": "Phạm Việt Hùng"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Trần Anh Dũng"
+                      },
+                      "id": {
+                        "stringValue": "xray-2"
+                      },
+                      "color": {
+                        "stringValue": "#ec4899"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "xray-3"
+                      },
+                      "name": {
+                        "stringValue": "Nguyễn Tiến Quỳnh"
+                      },
+                      "color": {
+                        "stringValue": "#f59e0b"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Bùi Hiếu Trung"
+                      },
+                      "id": {
+                        "stringValue": "xray-4"
+                      },
+                      "color": {
+                        "stringValue": "#8b5cf6"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Tô Minh Cường"
+                      },
+                      "id": {
+                        "stringValue": "xray-1779644203227"
+                      },
+                      "color": {
+                        "stringValue": "#0ea5e9"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "xray-1779644218101"
+                      },
+                      "name": {
+                        "stringValue": "Lê V Anh Nguyên"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "updatedAt": {
+            "timestampValue": "2026-07-12T15:34:35.122Z"
+          }
+        },
+        "createTime": "2026-06-08T09:00:53.072477Z",
+        "updateTime": "2026-07-12T15:34:35.205004Z"
+      },
+      {
+        "name": "projects/tasksched/databases/(default)/documents/assignments/roster_2026-06",
+        "fields": {
+          "month": {
+            "integerValue": "5"
+          },
+          "dutySchedule": {
+            "mapValue": {
+              "fields": {
+                "2026-06-18": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                },
+                "2026-06-08": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      }
+                    }
+                  }
+                },
+                "2026-06-13": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1779642956794"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      }
+                    }
+                  }
+                },
+                "2026-06-14": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      }
+                    }
+                  }
+                },
+                "2026-06-26": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-23": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-5"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      }
+                    }
+                  }
+                },
+                "2026-06-22": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-27": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      }
+                    }
+                  }
+                },
+                "2026-06-07": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      }
+                    }
+                  }
+                },
+                "2026-06-28": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-30": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1779642956794"
+                      }
+                    }
+                  }
+                },
+                "2026-06-11": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      }
+                    }
+                  }
+                },
+                "2026-06-20": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      }
+                    }
+                  }
+                },
+                "2026-06-03": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      }
+                    }
+                  }
+                },
+                "2026-06-29": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-5"
+                      }
+                    }
+                  }
+                },
+                "2026-06-19": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      }
+                    }
+                  }
+                },
+                "2026-06-01": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "47BKdtstqe6NYps1RjXT"
+                      }
+                    }
+                  }
+                },
+                "2026-06-02": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1"
+                      }
+                    }
+                  }
+                },
+                "2026-06-10": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-05": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-21": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      }
+                    }
+                  }
+                },
+                "2026-06-12": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      }
+                    }
+                  }
+                },
+                "2026-06-09": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      }
+                    }
+                  }
+                },
+                "2026-06-25": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-3"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      }
+                    }
+                  }
+                },
+                "2026-06-16": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-5"
+                      }
+                    }
+                  }
+                },
+                "2026-06-24": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1779642956794"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                },
+                "2026-06-17": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-4"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1779642956794"
+                      }
+                    }
+                  }
+                },
+                "2026-06-15": {
+                  "mapValue": {
+                    "fields": {
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644203227"
+                      },
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-3"
+                      }
+                    }
+                  }
+                },
+                "2026-06-04": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-2"
+                      }
+                    }
+                  }
+                },
+                "2026-06-06": {
+                  "mapValue": {
+                    "fields": {
+                      "ultrasoundEmployeeId": {
+                        "stringValue": "emp-1"
+                      },
+                      "xrayEmployeeId": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "type": {
+            "stringValue": "monthly_roster"
+          },
+          "updatedAt": {
+            "timestampValue": "2026-06-23T10:30:44.069Z"
+          },
+          "ultrasoundEmployees": {
+            "arrayValue": {
+              "values": [
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      },
+                      "name": {
+                        "stringValue": "Dương T Kim Oanh"
+                      },
+                      "id": {
+                        "stringValue": "doc-004"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "CoPkRtzQzE711o1KJRja"
+                      },
+                      "name": {
+                        "stringValue": "Dương Thành Long"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      },
+                      "name": {
+                        "stringValue": "Hà Huy Hiệu"
+                      },
+                      "id": {
+                        "stringValue": "ARamRfRMC5GGjNVC62PQ"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      },
+                      "id": {
+                        "stringValue": "doc-003"
+                      },
+                      "name": {
+                        "stringValue": "Lê Văn Linh"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      },
+                      "id": {
+                        "stringValue": "doc-007"
+                      },
+                      "name": {
+                        "stringValue": "Mai Quốc Tuấn"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Nguyễn Thị Mỹ Hạnh"
+                      },
+                      "id": {
+                        "stringValue": "doc-005"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "doc-002"
+                      },
+                      "name": {
+                        "stringValue": "Nguyễn Việt Phương"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Võ T Thuý An"
+                      },
+                      "id": {
+                        "stringValue": "doc-001"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#f59e0b"
+                      },
+                      "name": {
+                        "stringValue": "Nguyễn Việt Phương"
+                      },
+                      "id": {
+                        "stringValue": "emp-1"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#0ea5e9"
+                      },
+                      "name": {
+                        "stringValue": "Nguyễn Thị Mỹ Hạnh"
+                      },
+                      "id": {
+                        "stringValue": "emp-2"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#10b981"
+                      },
+                      "name": {
+                        "stringValue": "Lê Văn Linh"
+                      },
+                      "id": {
+                        "stringValue": "emp-3"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "emp-5"
+                      },
+                      "name": {
+                        "stringValue": "Mai Quốc Tuấn"
+                      },
+                      "color": {
+                        "stringValue": "#ec4899"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Dương T Kim Oanh"
+                      },
+                      "id": {
+                        "stringValue": "emp-1779642956794"
+                      },
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "year": {
+            "integerValue": "2026"
+          },
+          "xrayEmployees": {
+            "arrayValue": {
+              "values": [
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "47BKdtstqe6NYps1RjXT"
+                      },
+                      "name": {
+                        "stringValue": "KTV Test Browser"
+                      },
+                      "color": {
+                        "stringValue": "#10b981"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#10b981"
+                      },
+                      "name": {
+                        "stringValue": "Phạm Việt Hùng"
+                      },
+                      "id": {
+                        "stringValue": "xray-1"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "id": {
+                        "stringValue": "xray-2"
+                      },
+                      "name": {
+                        "stringValue": "Trần Anh Dũng"
+                      },
+                      "color": {
+                        "stringValue": "#ec4899"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "name": {
+                        "stringValue": "Nguyễn Tiến Quỳnh"
+                      },
+                      "id": {
+                        "stringValue": "xray-3"
+                      },
+                      "color": {
+                        "stringValue": "#f59e0b"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#8b5cf6"
+                      },
+                      "id": {
+                        "stringValue": "xray-4"
+                      },
+                      "name": {
+                        "stringValue": "Bùi Hiếu Trung"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#0ea5e9"
+                      },
+                      "id": {
+                        "stringValue": "xray-1779644203227"
+                      },
+                      "name": {
+                        "stringValue": "Tô Minh Cường"
+                      }
+                    }
+                  }
+                },
+                {
+                  "mapValue": {
+                    "fields": {
+                      "color": {
+                        "stringValue": "#4f46e5"
+                      },
+                      "name": {
+                        "stringValue": "Lê V Anh Nguyên"
+                      },
+                      "id": {
+                        "stringValue": "xray-1779644218101"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "createTime": "2026-05-30T16:44:56.092266Z",
+        "updateTime": "2026-06-23T10:30:44.092744Z"
+      }
+    ]
+  }
+}

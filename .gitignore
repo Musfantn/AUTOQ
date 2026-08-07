@@ -6,11 +6,16 @@ dist/
 build/
 *.spec.bak
 
-# ── Python cache ──────────────────────────────────────────────────────────────
+# ── Python cache & environments ───────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+.pytest_cache/
+.venv/
+venv/
+env/
+ENV/
 
 # ── Database (dữ liệu local, không commit) ────────────────────────────────────
 database/
@@ -18,7 +23,16 @@ database/
 *.sqlite3
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
 *.log
+
+# ── Environment variables (bí mật, cấu hình cá nhân) ─────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Vercel ────────────────────────────────────────────────────────────────────
+.vercel/
 
 # ── OS files ──────────────────────────────────────────────────────────────────
 .DS_Store
@@ -29,3 +43,4 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 .idea
+

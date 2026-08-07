@@ -11,12 +11,16 @@ a = Analysis(
     ],
     hiddenimports=[
         'PySide6.QtNetwork',        # dùng trong tv_display.py
+        'google.cloud.firestore',
+        'google.auth.credentials',
+        'google.api_core',
         'sqlite3',
         'urllib.request',
         'urllib.parse',
         'json',
         'datetime',
         'threading',
+        'his_bridge',
     ],
     hookspath=[],
     hooksconfig={},

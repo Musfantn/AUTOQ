@@ -7,9 +7,25 @@ a = Analysis(
     binaries=[],
     datas=[
         ('hospital.ico', '.'),      # icon trong thư mục gốc
+        ('his_bridge/config.yaml', 'his_bridge'), # config.yaml của his_bridge
     ],
     hiddenimports=[
-        'selenium',
+        'google.cloud.firestore',
+        'google.auth.credentials',
+        'google.api_core',
+        'httpx',
+        'his_bridge',
+        'his_bridge.bridge',
+        'his_bridge.config',
+        'his_bridge.models',
+        'his_bridge.vnpt_his_client',
+        'his_bridge.barcode_listener',
+        'his_bridge.cache',
+        'his_bridge.firestore_service',
+        'his_bridge.logger',
+        'session_watcher',
+        'websocket',
+        'psutil',
         'sqlite3',
         'urllib.request',
         'urllib.parse',

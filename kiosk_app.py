@@ -251,8 +251,9 @@ class PatientQueueDialog(QDialog):
 
             current_calling = data.get("current_calling")
             waiting_list = data.get("waiting_list", [])
+            history = data.get("history", [])
 
-            room_total = (1 if current_calling else 0) + len(waiting_list)
+            room_total = (1 if current_calling else 0) + len(waiting_list) + len(history)
             total_patients += room_total
 
             self.column_count_labels[room_str].setText(f"{room_total} BN")
@@ -273,8 +274,6 @@ class PatientQueueDialog(QDialog):
 
                 stt = current_calling.get("stt", "---")
                 name = current_calling.get("ten_bn", "Chưa rõ")
-                ma_bn = current_calling.get("ma_bn", "")
-                dich_vu = current_calling.get("dich_vu", "")
 
                 header_row = QHBoxLayout()
                 badge_status = QLabel("🟢 ĐANG KHÁM")
@@ -296,27 +295,13 @@ class PatientQueueDialog(QDialog):
                 name_lbl.setWordWrap(True)
                 cc_layout.addWidget(name_lbl)
 
-                if ma_bn:
-                    code_lbl = QLabel(f"Mã BN: {ma_bn}")
-                    code_lbl.setFont(QFont("Segoe UI", 9))
-                    code_lbl.setStyleSheet("color: #94a3b8;")
-                    cc_layout.addWidget(code_lbl)
-
-                if dich_vu:
-                    dv_clean = dich_vu.replace('\n', ', ')
-                    dv_lbl = QLabel(f"DV: {dv_clean}")
-                    dv_lbl.setFont(QFont("Segoe UI", 9))
-                    dv_lbl.setStyleSheet("color: #cbd5e1;")
-                    dv_lbl.setWordWrap(True)
-                    cc_layout.addWidget(dv_lbl)
-
                 scroll_layout.addWidget(calling_card)
 
-            # 2. Hiển thị danh sách Đang chờ
+            # 2. Hiển thị danh sách Đang chờ (Chỉ hiển thị STT và Họ tên)
             if waiting_list:
                 lbl_waiting_title = QLabel(f"⏳ HÀNG CHỜ ({len(waiting_list)})")
                 lbl_waiting_title.setFont(QFont("Segoe UI", 9, QFont.Bold))
-                lbl_waiting_title.setStyleSheet("color: #94a3b8; margin-top: 6px; margin-bottom: 2px;")
+                lbl_waiting_title.setStyleSheet("color: #38bdf8; margin-top: 6px; margin-bottom: 2px;")
                 scroll_layout.addWidget(lbl_waiting_title)
 
                 for idx, pat in enumerate(waiting_list, 1):
@@ -332,18 +317,12 @@ class PatientQueueDialog(QDialog):
                             background-color: #1e293b;
                         }
                     """)
-                    pat_layout = QVBoxLayout(pat_card)
-                    pat_layout.setContentsMargins(8, 8, 8, 8)
-                    pat_layout.setSpacing(4)
+                    pat_layout = QHBoxLayout(pat_card)
+                    pat_layout.setContentsMargins(6, 6, 6, 6)
+                    pat_layout.setSpacing(8)
 
                     stt = pat.get("stt", f"{idx:03d}")
                     name = pat.get("ten_bn", "Bệnh nhân")
-                    ma_bn = pat.get("ma_bn", "")
-                    tuoi = pat.get("tuoi", "")
-                    dich_vu = pat.get("dich_vu", "")
-
-                    top_row = QHBoxLayout()
-                    top_row.setSpacing(6)
 
                     stt_badge = QLabel(f"#{stt}")
                     stt_badge.setFont(QFont("Segoe UI", 10, QFont.Bold))
@@ -356,32 +335,51 @@ class PatientQueueDialog(QDialog):
                     name_lbl.setStyleSheet("color: #f8fafc;")
                     name_lbl.setWordWrap(True)
 
-                    top_row.addWidget(stt_badge)
-                    top_row.addWidget(name_lbl, 1)
-                    pat_layout.addLayout(top_row)
-
-                    sub_info = []
-                    if ma_bn:
-                        sub_info.append(f"Mã: {ma_bn}")
-                    if tuoi:
-                        sub_info.append(f"Tuổi: {tuoi}")
-
-                    if sub_info:
-                        sub_lbl = QLabel(" | ".join(sub_info))
-                        sub_lbl.setFont(QFont("Segoe UI", 9))
-                        sub_lbl.setStyleSheet("color: #94a3b8;")
-                        pat_layout.addWidget(sub_lbl)
-
-                    if dich_vu:
-                        dv_clean = dich_vu.replace('\n', ', ')
-                        dv_lbl = QLabel(f"DV: {dv_clean}")
-                        dv_lbl.setFont(QFont("Segoe UI", 8))
-                        dv_lbl.setStyleSheet("color: #64748b;")
-                        dv_lbl.setWordWrap(True)
-                        pat_layout.addWidget(dv_lbl)
+                    pat_layout.addWidget(stt_badge)
+                    pat_layout.addWidget(name_lbl, 1)
 
                     scroll_layout.addWidget(pat_card)
-            elif not current_calling:
+
+            # 3. Hiển thị danh sách Bệnh nhân Đã khám trong ngày (History)
+            if history:
+                lbl_history_title = QLabel(f"✅ ĐÃ KHÁM ({len(history)})")
+                lbl_history_title.setFont(QFont("Segoe UI", 9, QFont.Bold))
+                lbl_history_title.setStyleSheet("color: #10b981; margin-top: 8px; margin-bottom: 2px;")
+                scroll_layout.addWidget(lbl_history_title)
+
+                for idx, pat in enumerate(history, 1):
+                    pat_card = QFrame()
+                    pat_card.setStyleSheet("""
+                        QFrame {
+                            background-color: #0f172a;
+                            border: 1px solid #1e293b;
+                            border-radius: 6px;
+                        }
+                    """)
+                    pat_layout = QHBoxLayout(pat_card)
+                    pat_layout.setContentsMargins(6, 6, 6, 6)
+                    pat_layout.setSpacing(8)
+
+                    stt = pat.get("stt", f"{idx:03d}")
+                    name = pat.get("ten_bn", "Bệnh nhân")
+
+                    stt_badge = QLabel(f"✓ #{stt}")
+                    stt_badge.setFont(QFont("Segoe UI", 9, QFont.Bold))
+                    stt_badge.setStyleSheet(
+                        "color: #34d399; background: #064e3b; padding: 2px 6px; border-radius: 4px;"
+                    )
+
+                    name_lbl = QLabel(name)
+                    name_lbl.setFont(QFont("Segoe UI", 9, QFont.Bold))
+                    name_lbl.setStyleSheet("color: #94a3b8;")
+                    name_lbl.setWordWrap(True)
+
+                    pat_layout.addWidget(stt_badge)
+                    pat_layout.addWidget(name_lbl, 1)
+
+                    scroll_layout.addWidget(pat_card)
+
+            if not current_calling and not waiting_list and not history:
                 empty_lbl = QLabel("Chưa có bệnh nhân")
                 empty_lbl.setAlignment(Qt.AlignCenter)
                 empty_lbl.setFont(QFont("Segoe UI", 10))
@@ -401,6 +399,35 @@ class PatientQueueDialog(QDialog):
 # =============================================================================
 # PYSIDE6 GUI - KIOSK MODULE
 # =============================================================================
+# =============================================================================
+# CHỨC NĂNG DÒNG CHỮ CHẠY (MARQUEE TICKER)
+# =============================================================================
+class MarqueeLabel(QLabel):
+    """QLabel tự động chạy chữ liên tục từ phải sang trái."""
+    def __init__(self, text="", parent=None):
+        super().__init__(parent)
+        self._full_text = text
+        self._offset = 0
+        self.setText(text)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._scroll_text)
+        self.timer.start(180)  # Cập nhật chữ chạy mỗi 180ms
+
+    def set_marquee_text(self, text):
+        self._full_text = text
+        self._offset = 0
+        self.setText(text)
+
+    def _scroll_text(self):
+        if not self._full_text:
+            return
+        sep = "         •         "
+        full = self._full_text + sep
+        shifted = full[self._offset:] + full[:self._offset]
+        self.setText(shifted)
+        self._offset = (self._offset + 1) % len(full)
+
+
 class DeletableListWidget(QListWidget):
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Delete, Qt.Key_Backspace):
@@ -642,10 +669,10 @@ class KioskApp(QWidget):
 
         self.room_buttons = []
         for i in range(1, 6):
-            btn = QPushButton(f"PHÒNG SIÊU ÂM {i}")
-            btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
-            btn.setMinimumHeight(50)
-            btn.setStyleSheet(room_colors[str(i)])
+            btn = QPushButton(f"PHÒNG SA {i}")
+            btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
+            btn.setMinimumHeight(48)
+            btn.setStyleSheet(room_colors[str(i)] + " font-size: 13px; font-weight: bold; border-radius: 8px;")
             btn.clicked.connect(lambda checked=False, r=str(i): self.push_to_room(r))
             self.room_buttons.append(btn)
 
@@ -693,6 +720,24 @@ class KioskApp(QWidget):
         """)
         self.btn_patient_list.clicked.connect(self.open_patient_list)
         layout.addWidget(self.btn_patient_list)
+
+        # 6. Dòng chữ chạy (Marquee Credit & Hướng dẫn) ở dưới cùng
+        self.lbl_credit = MarqueeLabel(
+            "Đăng nhập vào HIS, mở danh sách bệnh nhân, không được thoát Chrome - Phần mềm được tạo bởi BS. Nguyễn Việt Phương"
+        )
+        self.lbl_credit.setFont(QFont("Segoe UI", 8, QFont.Bold))
+        self.lbl_credit.setAlignment(Qt.AlignCenter)
+        self.lbl_credit.setStyleSheet("""
+            QLabel {
+                color: #94a3b8;
+                background-color: #0f172a;
+                border: 1px solid #1e293b;
+                border-radius: 4px;
+                padding: 2px 6px;
+                font-size: 11px;
+            }
+        """)
+        layout.addWidget(self.lbl_credit)
 
         # Kết nối Signals
         self.push_success.connect(self.on_push_success)
@@ -1010,12 +1055,14 @@ class KioskApp(QWidget):
             for i in range(1, 6):
                 try:
                     q = firestore_queue.get_room_queue(str(i))
-                    if q and "waiting_list" in q:
-                        counts[str(i)] = len(q["waiting_list"])
+                    if q:
+                        waiting = len(q.get("waiting_list", []))
+                        total = q.get("last_number", 0)
+                        counts[str(i)] = {"total": total, "waiting": waiting}
                     else:
-                        counts[str(i)] = 0
+                        counts[str(i)] = {"total": 0, "waiting": 0}
                 except Exception:
-                    counts[str(i)] = 0
+                    counts[str(i)] = {"total": 0, "waiting": 0}
             self.counts_updated.emit(counts)
 
         threading.Thread(target=run, daemon=True).start()
@@ -1024,8 +1071,14 @@ class KioskApp(QWidget):
     def update_room_waiting_counts(self, counts):
         for i in range(1, 6):
             btn = self.room_buttons[i - 1]
-            cnt = counts.get(str(i), 0)
-            btn.setText(f"PHÒNG SIÊU ÂM {i} (còn {cnt} BN)")
+            c_info = counts.get(str(i), {})
+            if isinstance(c_info, dict):
+                total = c_info.get("total", 0)
+                waiting = c_info.get("waiting", 0)
+            else:
+                total = c_info
+                waiting = c_info
+            btn.setText(f"PHÒNG SA {i} (Tổng {total} - Chờ {waiting})")
 
     @Slot(str, str)
     def on_push_failed(self, room_num, error_msg):

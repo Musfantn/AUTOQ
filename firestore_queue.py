@@ -70,7 +70,7 @@ def _archive_current_to_history(queue_data: dict):
             start_ts = curr.get("called_at") or curr.get("timestamp") or now_ts
             curr["exam_duration_sec"] = max(0, int(now_ts - start_ts))
             queue_data["history"].append(curr)
-            queue_data["history"] = queue_data["history"][-50:]  # Lưu tối đa 50 ca đã khám trong ngày
+            queue_data["history"] = queue_data["history"][-300:]  # Lưu tối đa 300 ca đã khám trong ngày
 
 
 def next_patient(room_num) -> dict:

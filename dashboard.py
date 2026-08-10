@@ -461,6 +461,7 @@ class Dashboard(QWidget):
         if hasattr(self, 'mini') and not self.is_duty_mode:
             stt_panel = current_calling.get("stt", "000") if current_calling else "000"
             self.mini.update_number("CC" if stt_panel == "CC" else stt_panel)
+            self.mini.set_priority_visible(has_priority)
 
     def _flash_priority_alert(self, stt: str, ten_bn: str):
         """Hiển thị popup cảnh báo và khởi động nhấp nháy cửa sổ khi có BN ưu tiên."""

@@ -6,7 +6,7 @@
 ; ============================================================
 
 #define MyAppName      "AUTOQ - Hệ Thống Gọi Số Khoa CĐHA"
-#define MyAppVersion   "4.0"
+#define MyAppVersion   "4.5"
 #define MyAppPublisher "Khoa Chẩn Đoán Hình Ảnh - BVĐK Thị Xã Kỳ Anh"
 #define MySourceDir    "dist"
 

@@ -37,18 +37,33 @@ class MiniPanel(QWidget):
         self.number.setStyleSheet("font-size:22px; font-weight:bold; color: #FFD700; border: none;")
 
         btn_next = QPushButton("TIẾP THEO")
+        self.btn_call_priority = QPushButton("🚨 ƯU TIÊN")
         btn_dash = QPushButton("PHÓNG TO")
 
         btn_next.setStyleSheet("background: #28a745; border-radius: 5px; padding: 5px; border: none;")
+        self.btn_call_priority.setStyleSheet("""
+            QPushButton {
+                background: #b91c1c;
+                color: white;
+                font-weight: bold;
+                border-radius: 5px;
+                padding: 5px 8px;
+                border: 1px solid #fca5a5;
+            }
+            QPushButton:hover { background: #dc2626; }
+        """)
+        self.btn_call_priority.setVisible(False)
         btn_dash.setStyleSheet("background: #6c757d; border-radius: 5px; padding: 5px; border: none;")
 
-        # Kết nối nút NEXT về Dashboard
+        # Kết nối nút NEXT và GỌI ƯU TIÊN về Dashboard
         btn_next.clicked.connect(self.dashboard.next)
+        self.btn_call_priority.clicked.connect(self.dashboard.call_priority_patient_action)
         btn_dash.clicked.connect(self.restore)
 
         layout.addWidget(self.duty_indicator)
         layout.addWidget(self.number)
         layout.addWidget(btn_next)
+        layout.addWidget(self.btn_call_priority)
         layout.addWidget(btn_dash)
         layout.addStretch()
 
@@ -58,7 +73,7 @@ class MiniPanel(QWidget):
         self.time_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(self.time_label)
 
-        self.setFixedSize(420, 50)
+        self.setFixedSize(500, 50)
 
         # ===== clock timer =====
         self.clock_timer = QTimer(self)
@@ -99,11 +114,18 @@ class MiniPanel(QWidget):
         self.number.setText(str(n))
         self.number.repaint()
 
+    def set_priority_visible(self, active: bool):
+        """Hiện/Ẩn nút gọi bệnh nhân ưu tiên trên mini panel."""
+        if hasattr(self, 'btn_call_priority'):
+            self.btn_call_priority.setVisible(active)
+
     # ===== duty mode indicator =====
     def set_duty_mode(self, active):
         """Bật/tắt ký hiệu chế độ trực trên mini panel."""
         self.duty_indicator.setVisible(active)
         if active:
+            if hasattr(self, 'btn_call_priority'):
+                self.btn_call_priority.setVisible(False)
             self.number.setText("TRỰC")
             self.number.setFixedWidth(50)
             self.number.setStyleSheet("font-size: 16px; font-weight: 700; color: #FF9800; border: none;")

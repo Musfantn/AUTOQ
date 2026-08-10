@@ -460,17 +460,46 @@ class TVDisplay(QWidget):
             card = self.waiting_cards[i]
             if i < len(waiting_list):
                 pat = waiting_list[i]
-                card["stt_lbl"].setText(pat.get("stt", "---"))
-                card["stt_lbl"].setStyleSheet("""
-                    background-color: #0B5FA5;
-                    color: white;
-                    font-size: 26px;
-                    font-weight: bold;
-                    border-radius: 8px;
-                    border: none;
-                """)
-                card["name_lbl"].setText(pat.get("ten_bn", "").upper())
-                
+                is_priority = pat.get("is_priority", False)
+                pat_stt = pat.get("stt", "---")
+                pat_name = pat.get("ten_bn", "").upper()
+                if is_priority:
+                    pat_name = f"🚨 {pat_name} (Ưu tiên)"
+
+                card["stt_lbl"].setText(pat_stt)
+                if is_priority:
+                    card["stt_lbl"].setStyleSheet("""
+                        background-color: #dc2626;
+                        color: white;
+                        font-size: 26px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        border: none;
+                    """)
+                    card["name_lbl"].setText(pat_name)
+                    card["name_lbl"].setStyleSheet(
+                        "font-size: 23px; color: #ef4444; font-weight: bold; background: transparent; border: none;"
+                    )
+                    card["frame"].setStyleSheet(
+                        "background: #450a0a; border-radius: 10px; border: 2px solid #dc2626;"
+                    )
+                else:
+                    card["stt_lbl"].setStyleSheet("""
+                        background-color: #0B5FA5;
+                        color: white;
+                        font-size: 26px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        border: none;
+                    """)
+                    card["name_lbl"].setText(pat_name)
+                    card["name_lbl"].setStyleSheet(
+                        "font-size: 23px; color: #1e293b; font-weight: bold; background: transparent; border: none;"
+                    )
+                    card["frame"].setStyleSheet(
+                        "background: #f1f5f9; border-radius: 10px; border: 1px solid #cbd5e1;"
+                    )
+
                 tuoi = pat.get("tuoi", "")
                 nam_sinh = extract_birth_year(pat.get("ngay_sinh", ""))
                 age_ns_str = self._format_age_info(tuoi, nam_sinh, short=True)
@@ -478,8 +507,7 @@ class TVDisplay(QWidget):
                 dich_vu = pat.get("dich_vu", "").replace("\n", ", ").strip()
                 if len(dich_vu) > 40:
                     dich_vu = dich_vu[:37] + "..."
-                card["info_lbl"].setText(f"{age_ns_str}   |   {dich_vu}")
-                card["frame"].setStyleSheet("background: #f1f5f9; border-radius: 10px; border: 1px solid #cbd5e1;")
+                card["info_lbl"].setText(f"{age_ns_str}   |   {dich_vu}" if age_ns_str else dich_vu)
             else:
                 card["stt_lbl"].setText("")
                 card["stt_lbl"].setStyleSheet("background-color: transparent; border: none;")

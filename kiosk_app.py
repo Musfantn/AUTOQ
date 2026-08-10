@@ -10,7 +10,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QTextEdit,
     QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QMessageBox, QFrame,
-    QListWidget, QListWidgetItem, QDialog, QScrollArea
+    QListWidget, QListWidgetItem, QDialog, QScrollArea, QMenu
 )
 from PySide6.QtCore import Qt, QThread, Signal, Slot, QTimer
 from PySide6.QtGui import QFont, QIcon
@@ -305,34 +305,63 @@ class PatientQueueDialog(QDialog):
                 scroll_layout.addWidget(lbl_waiting_title)
 
                 for idx, pat in enumerate(waiting_list, 1):
+                    is_priority = pat.get("is_priority", False)
+                    pat_stt = pat.get("stt", f"{idx:03d}")
+                    name = pat.get("ten_bn", "Bệnh nhân")
+
                     pat_card = QFrame()
-                    pat_card.setStyleSheet("""
-                        QFrame {
-                            background-color: #0f172a;
-                            border: 1px solid #334155;
-                            border-radius: 6px;
-                        }
-                        QFrame:hover {
-                            border-color: #38bdf8;
-                            background-color: #1e293b;
-                        }
-                    """)
+                    if is_priority:
+                        pat_card.setStyleSheet("""
+                            QFrame {
+                                background-color: #450a0a;
+                                border: 1px solid #dc2626;
+                                border-radius: 6px;
+                            }
+                            QFrame:hover {
+                                border-color: #ef4444;
+                                background-color: #7f1d1d;
+                            }
+                        """)
+                    else:
+                        pat_card.setStyleSheet("""
+                            QFrame {
+                                background-color: #0f172a;
+                                border: 1px solid #334155;
+                                border-radius: 6px;
+                            }
+                            QFrame:hover {
+                                border-color: #38bdf8;
+                                background-color: #1e293b;
+                            }
+                        """)
+
+                    # Gắn context menu (right-click để swap phòng)
+                    pat_card.setContextMenuPolicy(Qt.CustomContextMenu)
+                    pat_card.customContextMenuRequested.connect(
+                        lambda pos, card=pat_card, r=room_str, s=pat_stt: self._show_swap_menu(card, r, s, pos)
+                    )
+
                     pat_layout = QHBoxLayout(pat_card)
                     pat_layout.setContentsMargins(6, 6, 6, 6)
                     pat_layout.setSpacing(8)
 
-                    stt = pat.get("stt", f"{idx:03d}")
-                    name = pat.get("ten_bn", "Bệnh nhân")
+                    # Badge STT (màu khác nhau cho ưu tiên)
+                    if is_priority:
+                        stt_badge = QLabel(f"🚨 #{pat_stt}")
+                        stt_badge.setFont(QFont("Segoe UI", 10, QFont.Bold))
+                        stt_badge.setStyleSheet(
+                            "color: white; background: #dc2626; padding: 2px 6px; border-radius: 4px;"
+                        )
+                    else:
+                        stt_badge = QLabel(f"#{pat_stt}")
+                        stt_badge.setFont(QFont("Segoe UI", 10, QFont.Bold))
+                        stt_badge.setStyleSheet(
+                            "color: #38bdf8; background: #0284c7; padding: 2px 6px; border-radius: 4px;"
+                        )
 
-                    stt_badge = QLabel(f"#{stt}")
-                    stt_badge.setFont(QFont("Segoe UI", 10, QFont.Bold))
-                    stt_badge.setStyleSheet(
-                        "color: #38bdf8; background: #0284c7; padding: 2px 6px; border-radius: 4px;"
-                    )
-
-                    name_lbl = QLabel(name)
+                    name_lbl = QLabel(f"{name} (ưu tiên)" if is_priority else name)
                     name_lbl.setFont(QFont("Segoe UI", 10, QFont.Bold))
-                    name_lbl.setStyleSheet("color: #f8fafc;")
+                    name_lbl.setStyleSheet("color: #fca5a5;" if is_priority else "color: #f8fafc;")
                     name_lbl.setWordWrap(True)
 
                     pat_layout.addWidget(stt_badge)
@@ -395,6 +424,58 @@ class PatientQueueDialog(QDialog):
             self.timer.stop()
         super().closeEvent(event)
 
+    def _show_swap_menu(self, card_widget, from_room: str, pat_stt: str, local_pos):
+        """Hiển thị context menu để chuyển bệnh nhân sang phòng khác (swap phòng)."""
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #1e293b;
+                color: #f1f5f9;
+                border: 1px solid #334155;
+                border-radius: 6px;
+                padding: 4px 0;
+                font-size: 13px;
+            }
+            QMenu::item { padding: 6px 20px; }
+            QMenu::item:selected {
+                background-color: #0284c7;
+                color: white;
+                border-radius: 4px;
+            }
+            QMenu::separator { background: #334155; height: 1px; margin: 3px 0; }
+        """)
+
+        title_action = menu.addAction(f"🗒 Chuyển BN STT #{pat_stt}")
+        title_action.setEnabled(False)
+        menu.addSeparator()
+
+        room_icons = {"1": "🟦", "2": "🟩", "3": "🟣", "4": "🟥", "5": "🟧"}
+        for r in range(1, 6):
+            r_str = str(r)
+            if r_str == from_room:
+                continue
+            action = menu.addAction(f"{room_icons.get(r_str, '▪')} → Phòng SA {r}")
+            action.setData((from_room, pat_stt, r_str))
+
+        chosen = menu.exec(card_widget.mapToGlobal(local_pos))
+        if chosen and chosen.data():
+            from_r, stt, to_r = chosen.data()
+            self._do_swap_room(from_r, stt, to_r)
+
+    def _do_swap_room(self, from_room: str, pat_stt: str, to_room: str):
+        """Thực hiện chuyển phòng trong background thread."""
+        def run():
+            ok = firestore_queue.move_patient_to_room(from_room, pat_stt, to_room)
+            if ok:
+                print(f"[SwapRoom] Đã chuyển BN STT={pat_stt} từ Phòng {from_room} → Phòng {to_room}")
+            else:
+                print(f"[SwapRoom] Không thể chuyển BN STT={pat_stt} từ Phòng {from_room} → Phòng {to_room}")
+            # Reload data sau khi swap
+            self.fetch_data_async()
+
+        import threading as _threading
+        _threading.Thread(target=run, daemon=True).start()
+
 
 # =============================================================================
 # PYSIDE6 GUI - KIOSK MODULE
@@ -435,6 +516,112 @@ class DeletableListWidget(QListWidget):
                 self.takeItem(self.row(item))
         else:
             super().keyPressEvent(event)
+
+
+# =============================================================================
+# DIALOG NHẬP THÔNG TIN BỆNH NHÂN ƯU TIÊN / CẤP CỨU
+# =============================================================================
+class PriorityPatientDialog(QDialog):
+    """Popup nhập thủ công STT và tên BN ưu tiên/cấp cứu."""
+
+    def __init__(self, room_num, parent=None):
+        super().__init__(parent)
+        self.room_num = room_num
+        self.setWindowTitle(f"🚨 Thêm Bệnh Nhân Ưu Tiên — Phòng SA {room_num}")
+        self.setMinimumWidth(420)
+        self.setModal(True)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #1a0000;
+                color: #f8fafc;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            QLabel { color: #f8fafc; font-size: 13px; }
+            QLineEdit {
+                background-color: #2d1b1b;
+                border: 1px solid #dc2626;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #f8fafc;
+                font-size: 14px;
+            }
+            QLineEdit:focus { border: 1px solid #ef4444; }
+            QPushButton {
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(14)
+
+        # Header
+        header = QLabel(f"🚨  ƯU TIÊN / CẤP CỨU — PHÒNG SA {room_num}")
+        header.setFont(QFont("Segoe UI", 13, QFont.Bold))
+        header.setStyleSheet("color: #ef4444; margin-bottom: 6px;")
+        header.setAlignment(Qt.AlignCenter)
+        layout.addWidget(header)
+
+        note = QLabel("Nhập số thứ tự bệnh nhân (có thể trùng với STT thường).\nBN này sẽ được đẩy lên đầu hàng đợi.")
+        note.setWordWrap(True)
+        note.setStyleSheet("color: #fca5a5; font-size: 11px;")
+        note.setAlignment(Qt.AlignCenter)
+        layout.addWidget(note)
+
+        # STT Input
+        lbl_stt = QLabel("Số thứ tự (STT):")
+        lbl_stt.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        layout.addWidget(lbl_stt)
+        self.edit_stt = QLineEdit()
+        self.edit_stt.setPlaceholderText("Ví dụ: 005")
+        self.edit_stt.setMinimumHeight(40)
+        self.edit_stt.setFont(QFont("Segoe UI", 14, QFont.Bold))
+        layout.addWidget(self.edit_stt)
+
+        # Name Input
+        lbl_name = QLabel("Họ tên bệnh nhân (có thể để trống):")
+        lbl_name.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        layout.addWidget(lbl_name)
+        self.edit_name = QLineEdit()
+        self.edit_name.setPlaceholderText("Nhập tên hoặc để trống")
+        self.edit_name.setMinimumHeight(40)
+        self.edit_name.setFont(QFont("Segoe UI", 12))
+        layout.addWidget(self.edit_name)
+
+        # Buttons
+        btn_row = QHBoxLayout()
+        btn_cancel = QPushButton("Hủy")
+        btn_cancel.setStyleSheet("background-color: #374151; color: #e2e8f0;")
+        btn_cancel.clicked.connect(self.reject)
+
+        self.btn_confirm = QPushButton("🚨 XÁC NHẬN ƯU TIÊN")
+        self.btn_confirm.setStyleSheet("background-color: #dc2626; color: white;")
+        self.btn_confirm.clicked.connect(self._confirm)
+        self.btn_confirm.setDefault(True)
+
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(self.btn_confirm)
+        layout.addLayout(btn_row)
+
+        self.edit_stt.setFocus()
+
+    def _confirm(self):
+        stt_text = self.edit_stt.text().strip()
+        if not stt_text:
+            QMessageBox.warning(self, "Thiếu STT", "Vui lòng nhập số thứ tự bệnh nhân ưu tiên!")
+            return
+        # Chuẩn hóa STT thành 3 ký tự số nếu có thể
+        try:
+            stt_text = f"{int(stt_text):03d}"
+        except ValueError:
+            pass  # Giữ nguyên nếu không phải số
+        self.result_stt = stt_text
+        self.result_name = self.edit_name.text().strip()
+        self.accept()
 
 class KioskApp(QWidget):
     # Signal để cập nhật giao diện sau khi đẩy Firestore thành công
@@ -652,13 +839,16 @@ class KioskApp(QWidget):
 
         layout.addWidget(self.group_info)
 
-        # 3. Destination Rooms Group (5 buttons)
+        # 3. Destination Rooms Group (5 buttons + priority buttons)
         group_rooms = QGroupBox("Đẩy bệnh nhân vào phòng siêu âm")
         rooms_layout = QGridLayout(group_rooms)
         rooms_layout.setContentsMargins(15, 20, 15, 15)
-        rooms_layout.setSpacing(12)
+        rooms_layout.setSpacing(8)
+        # Cột 0: nút phòng thường (co giãn), Cột 1: nút ưu tiên (cố định)
+        rooms_layout.setColumnStretch(0, 1)
+        rooms_layout.setColumnStretch(1, 0)
 
-        # Màu sắc premium cho từng phòng
+        # Màu sắc cho từng phòng
         room_colors = {
             "1": "background-color: #0284c7; color: white;",
             "2": "background-color: #059669; color: white;",
@@ -668,19 +858,44 @@ class KioskApp(QWidget):
         }
 
         self.room_buttons = []
+        self.priority_buttons = []
         for i in range(1, 6):
+            # Nút thêm BN thường
             btn = QPushButton(f"PHÒNG SA {i}")
             btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
-            btn.setMinimumHeight(48)
-            btn.setStyleSheet(room_colors[str(i)] + " font-size: 13px; font-weight: bold; border-radius: 8px;")
+            btn.setMinimumHeight(44)
+            btn.setStyleSheet(room_colors[str(i)] + " font-size: 12px; font-weight: bold; border-radius: 8px;")
             btn.clicked.connect(lambda checked=False, r=str(i): self.push_to_room(r))
             self.room_buttons.append(btn)
 
-        rooms_layout.addWidget(self.room_buttons[0], 0, 0)
-        rooms_layout.addWidget(self.room_buttons[1], 0, 1)
-        rooms_layout.addWidget(self.room_buttons[2], 1, 0)
-        rooms_layout.addWidget(self.room_buttons[3], 1, 1)
-        rooms_layout.addWidget(self.room_buttons[4], 2, 0, 1, 2)
+            # Nút thêm BN ưu tiên (nằm bên phải)
+            btn_prio = QPushButton("🚨")
+            btn_prio.setToolTip(f"Thêm bệnh nhân Ưu Tiên / Cấp Cứu vào Phòng SA {i}")
+            btn_prio.setFixedWidth(42)
+            btn_prio.setMinimumHeight(44)
+            btn_prio.setFont(QFont("Segoe UI", 14))
+            btn_prio.setStyleSheet("""
+                QPushButton {
+                    background-color: #7f1d1d;
+                    color: white;
+                    border: 2px solid #dc2626;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    padding: 0;
+                }
+                QPushButton:hover { background-color: #dc2626; }
+                QPushButton:pressed { background-color: #991b1b; }
+            """)
+            btn_prio.clicked.connect(lambda checked=False, r=str(i): self.push_priority_to_room(r))
+            self.priority_buttons.append(btn_prio)
+
+        positions = [(0, 0), (0, 2), (1, 0), (1, 2), (2, 0)]
+        for idx, (row, col) in enumerate(positions):
+            rooms_layout.addWidget(self.room_buttons[idx], row, col)
+            rooms_layout.addWidget(self.priority_buttons[idx], row, col + 1)
+        # Phòng 5 trải dài cả 2 cột (0..2) nhưng nút ưu tiên vẫn riêng ở cột 3
+        rooms_layout.setColumnStretch(2, 1)
+        rooms_layout.setColumnStretch(3, 0)
 
         layout.addWidget(group_rooms)
 
@@ -1003,7 +1218,9 @@ class KioskApp(QWidget):
         # Vô hiệu hóa các nút đẩy phòng để tránh nhấn lặp
         for btn in self.room_buttons:
             btn.setEnabled(False)
-            
+        for btn in self.priority_buttons:
+            btn.setEnabled(False)
+
         self.log(f"Đang đồng bộ bệnh nhân '{ten_bn}' lên Firestore Phòng {room_num}...")
 
         # Chạy thao tác ghi Firestore trong luồng riêng biệt
@@ -1016,10 +1233,29 @@ class KioskApp(QWidget):
 
         threading.Thread(target=run, daemon=True).start()
 
+    def push_priority_to_room(self, room_num):
+        """Mở dialog nhập thông tin BN ưu tiên và đẩy lên Firestore."""
+        dlg = PriorityPatientDialog(room_num, parent=self)
+        if dlg.exec() == QDialog.Accepted:
+            stt_str = dlg.result_stt
+            ten_bn = dlg.result_name or f"ƯU TIÊN SỐ {stt_str}"
+            self.log(f"🚨 Đang thêm BN ưu tiên '{ten_bn}' STT={stt_str} vào Phòng SA {room_num}...")
+
+            def run():
+                ok = firestore_queue.push_priority_patient(room_num, stt_str, ten_bn)
+                if ok:
+                    self.push_success.emit(room_num, f"[ƯU TIÊN] {ten_bn}", stt_str, [])
+                else:
+                    self.push_failed.emit(room_num, "Lỗi ghi BN ưu tiên lên Firestore.")
+
+            threading.Thread(target=run, daemon=True).start()
+
     @Slot(str, str, str, list)
     def on_push_success(self, room_num, ten_bn, stt, pushed_services):
         # Kích hoạt lại các nút phòng
         for btn in self.room_buttons:
+            btn.setEnabled(True)
+        for btn in self.priority_buttons:
             btn.setEnabled(True)
             
         self.log(f"Đồng bộ THÀNH CÔNG! Đã đẩy BN '{ten_bn}' vào PHÒNG {room_num} - STT: {stt}")
@@ -1085,7 +1321,9 @@ class KioskApp(QWidget):
         # Kích hoạt lại các nút phòng
         for btn in self.room_buttons:
             btn.setEnabled(True)
-            
+        for btn in self.priority_buttons:
+            btn.setEnabled(True)
+
         self.log(f"Đồng bộ THẤT BẠI: {error_msg}")
         QMessageBox.critical(self, "Lỗi đồng bộ", f"Không thể lưu lên cơ sở dữ liệu Cloud của Phòng {room_num}.\nChi tiết: {error_msg}")
 

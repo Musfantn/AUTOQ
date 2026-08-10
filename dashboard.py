@@ -45,6 +45,10 @@ class Dashboard(QWidget):
         self.is_duty_mode = False
         self.last_number = "000"
         self.latest_queue_data = None
+        self._last_priority_ts = 0.0  # Timestamp của priority_notification đã xử lý gần nhất
+        self._blink_count = 0
+        self._blink_timer = QTimer(self)
+        self._blink_timer.timeout.connect(self._do_blink)
 
         self.setWindowTitle("Radiology Dashboard - BVĐK Kỳ Anh")
         self.setMinimumSize(680, 710)
@@ -267,6 +271,24 @@ class Dashboard(QWidget):
     def on_queue_updated(self, queue_data):
         """Cập nhật dữ liệu hàng đợi từ Server lên UI Dashboard và TV"""
         self.latest_queue_data = queue_data
+
+        # === Xử lý thông báo bệnh nhân ưu tiên ===
+        prio_notif = queue_data.get("priority_notification")
+        if prio_notif and not prio_notif.get("seen", True):
+            ts = prio_notif.get("timestamp", 0.0)
+            if ts > self._last_priority_ts:
+                self._last_priority_ts = ts
+                stt_prio = prio_notif.get("stt", "?")
+                name_prio = prio_notif.get("ten_bn", "")
+                self._flash_priority_alert(stt_prio, name_prio)
+                # Đánh dấu đã xử lý trong background
+                room_num = self.config.get("room_number", "1").strip()
+                import threading as _t
+                _t.Thread(
+                    target=lambda: __import__("firestore_queue").clear_priority_notification(room_num),
+                    daemon=True
+                ).start()
+
         current_calling = queue_data.get("current_calling")
         waiting_list = queue_data.get("waiting_list", [])
         history = queue_data.get("history", [])
@@ -410,6 +432,51 @@ class Dashboard(QWidget):
         if hasattr(self, 'mini') and not self.is_duty_mode:
             stt_panel = current_calling.get("stt", "000") if current_calling else "000"
             self.mini.update_number("CC" if stt_panel == "CC" else stt_panel)
+
+    def _flash_priority_alert(self, stt: str, ten_bn: str):
+        """Hiển thị popup cảnh báo và khởi động nhấp nháy cửa sổ khi có BN ưu tiên."""
+        # Popup cảnh báo
+        msg = QMessageBox(self)
+        msg.setWindowTitle("🚨 BỆNH NHÂN ƯU TIÊN")
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText(
+            f"⚠️ Có bệnh nhân Ưu tiên / cấp cứu mới!\n"
+            f"STT: <b>{stt}</b>\n"
+            f"Tên: <b>{ten_bn}</b>"
+        )
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStyleSheet("""
+            QMessageBox { background-color: #450a0a; }
+            QLabel { color: #fca5a5; font-size: 14px; }
+            QPushButton { background-color: #dc2626; color: white; min-width: 80px; padding: 6px; }
+        """)
+        # Khởi động hiệu ứng nhấp nháy
+        self._blink_count = 12
+        self._blink_state = True
+        self._blink_timer.start(250)
+        msg.exec()  # Modal — block cho đến khi nhấn OK
+        self._blink_timer.stop()
+        # Khôi phục style gốc của window
+        self.setStyleSheet("")
+
+    def _do_blink(self):
+        """Nhấp nháy nền của dashboard và mini_panel."""
+        if self._blink_count <= 0:
+            self._blink_timer.stop()
+            self.setStyleSheet("")
+            if hasattr(self, 'mini'):
+                self.mini.setStyleSheet("background:#0B5FA5; color:white; border-radius:10px; border: 1px solid white;")
+            return
+        self._blink_count -= 1
+        self._blink_state = not self._blink_state
+        if self._blink_state:
+            self.setStyleSheet("background-color: #7f1d1d;")
+            if hasattr(self, 'mini'):
+                self.mini.setStyleSheet("background:#dc2626; color:white; border-radius:10px; border: 2px solid #fca5a5;")
+        else:
+            self.setStyleSheet("")
+            if hasattr(self, 'mini'):
+                self.mini.setStyleSheet("background:#0B5FA5; color:white; border-radius:10px; border: 1px solid white;")
 
     def next(self):
         """Hàm gọi số tiếp theo"""

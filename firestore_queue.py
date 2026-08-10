@@ -57,6 +57,87 @@ def push_patient(room_num, ma_bn, ten_bn, tuoi, ngay_sinh, dich_vu) -> str | Non
     return None
 
 
+def push_priority_patient(room_num, stt_str: str, ten_bn: str) -> bool:
+    """Ghi thông báo bệnh nhân ưu tiên/cấp cứu vào Firestore.
+    Đồng thời thêm BN ưu tiên vào đầu waiting_list với nhãn is_priority=True.
+    """
+    queue_data = get_room_queue(room_num)
+
+    # Tạo bản ghi bệnh nhân ưu tiên
+    priority_patient = {
+        "stt": stt_str,
+        "ma_bn": f"UT_{stt_str}",
+        "ten_bn": ten_bn or f"ƯU TIÊN SỐ {stt_str}",
+        "tuoi": "",
+        "ngay_sinh": "",
+        "dich_vu": "ƯU TIÊN / CẤP CỨU",
+        "is_priority": True,
+        "timestamp": time.time(),
+    }
+
+    # Chèn vào đầu hàng đợi (ưu tiên cao hơn bệnh nhân thường)
+    queue_data["waiting_list"].insert(0, priority_patient)
+
+    # Ghi trường priority_notification để các app khác (dashboard, mini_panel) nhận tín hiệu
+    queue_data["priority_notification"] = {
+        "stt": stt_str,
+        "ten_bn": ten_bn or f"ƯU TIÊN SỐ {stt_str}",
+        "timestamp": time.time(),
+        "seen": False,
+    }
+
+    return save_room_queue(room_num, queue_data)
+
+
+def clear_priority_notification(room_num) -> bool:
+    """Đánh dấu priority_notification đã được nhận (seen=True)."""
+    path = f"autoq_queues/room_{room_num}"
+    data = firestore_get_parsed(path)
+    if data and data.get("priority_notification"):
+        data["priority_notification"]["seen"] = True
+        return firestore_set(path, data)
+    return True
+
+
+def move_patient_to_room(from_room, pat_stt: str, to_room) -> bool:
+    """Chuyển bệnh nhân từ phòng này sang phòng khác với STT mới tự động.
+    - Tìm và xóa BN khỏi waiting_list của from_room.
+    - Thêm BN vào waiting_list của to_room với last_number+1.
+    """
+    from_room = str(from_room)
+    to_room = str(to_room)
+
+    src_data = get_room_queue(from_room)
+    dst_data = get_room_queue(to_room)
+
+    # Tìm bệnh nhân trong từng phòng nguồn
+    found_pat = None
+    new_waiting = []
+    for p in src_data.get("waiting_list", []):
+        if str(p.get("stt", "")).strip() == str(pat_stt).strip():
+            found_pat = p
+        else:
+            new_waiting.append(p)
+
+    if found_pat is None:
+        _log(f"[move_patient] Không tìm thấy BN STT={pat_stt} trong phòng {from_room}")
+        return False
+
+    # Cập nhật phòng nguồn: xóa BN
+    src_data["waiting_list"] = new_waiting
+    if not save_room_queue(from_room, src_data):
+        return False
+
+    # Cập nhật phòng đích: thêm BN với STT mới
+    dst_data["last_number"] += 1
+    new_stt = f"{dst_data['last_number']:03d}"
+    found_pat = dict(found_pat)  # copy để không bị reference sharing
+    found_pat["stt"] = new_stt
+    found_pat["timestamp"] = time.time()
+    dst_data["waiting_list"].append(found_pat)
+    return save_room_queue(to_room, dst_data)
+
+
 def _archive_current_to_history(queue_data: dict):
     """Lưu bệnh nhân đang gọi hiện tại vào danh sách lịch sử bệnh nhân đã thực hiện kèm thời gian thực hiện."""
     curr = queue_data.get("current_calling")

@@ -57,20 +57,23 @@ def push_patient(room_num, ma_bn, ten_bn, tuoi, ngay_sinh, dich_vu) -> str | Non
     return None
 
 
-def push_priority_patient(room_num, stt_str: str, ten_bn: str) -> bool:
-    """Ghi thông báo bệnh nhân ưu tiên/cấp cứu vào Firestore.
-    Đồng thời thêm BN ưu tiên vào đầu waiting_list với nhãn is_priority=True.
+def push_priority_patient(room_num, ma_bn: str, ten_bn: str, tuoi, ngay_sinh: str, dich_vu: str) -> str | None:
+    """Thêm bệnh nhân ưu tiên vào đầu hàng đợi của phòng chỉ định.
+    STT được tự động tăng (giống push_patient), BN được chèn vào đầu waiting_list.
+    Ghi priority_notification để các app khác nhận tín hiệu cảnh báo.
+    Trả về STT được gán nếu thành công, None nếu thất bại.
     """
     queue_data = get_room_queue(room_num)
+    queue_data["last_number"] += 1
+    stt_str = f"{queue_data['last_number']:03d}"
 
-    # Tạo bản ghi bệnh nhân ưu tiên
     priority_patient = {
         "stt": stt_str,
-        "ma_bn": f"UT_{stt_str}",
+        "ma_bn": ma_bn,
         "ten_bn": ten_bn or f"ƯU TIÊN SỐ {stt_str}",
-        "tuoi": "",
-        "ngay_sinh": "",
-        "dich_vu": "ƯU TIÊN / CẤP CỨU",
+        "tuoi": tuoi,
+        "ngay_sinh": ngay_sinh,
+        "dich_vu": dich_vu,
         "is_priority": True,
         "timestamp": time.time(),
     }
@@ -78,15 +81,17 @@ def push_priority_patient(room_num, stt_str: str, ten_bn: str) -> bool:
     # Chèn vào đầu hàng đợi (ưu tiên cao hơn bệnh nhân thường)
     queue_data["waiting_list"].insert(0, priority_patient)
 
-    # Ghi trường priority_notification để các app khác (dashboard, mini_panel) nhận tín hiệu
+    # Ghi priority_notification để dashboard/mini_panel nhận cảnh báo
     queue_data["priority_notification"] = {
         "stt": stt_str,
-        "ten_bn": ten_bn or f"ƯU TIÊN SỐ {stt_str}",
+        "ten_bn": priority_patient["ten_bn"],
         "timestamp": time.time(),
         "seen": False,
     }
 
-    return save_room_queue(room_num, queue_data)
+    if save_room_queue(room_num, queue_data):
+        return stt_str
+    return None
 
 
 def clear_priority_notification(room_num) -> bool:
@@ -97,6 +102,38 @@ def clear_priority_notification(room_num) -> bool:
         data["priority_notification"]["seen"] = True
         return firestore_set(path, data)
     return True
+
+
+def call_priority_patient(room_num) -> dict:
+    """Gọi ngay bệnh nhân ưu tiên đầu tiên trong waiting_list.
+    Tìm BN có is_priority=True, xóa khỏi waiting_list, đặt làm current_calling.
+    Trả về queue_data mới sau khi cập nhật.
+    """
+    queue_data = get_room_queue(room_num)
+    _archive_current_to_history(queue_data)
+
+    # Tìm BN ưu tiên đầu tiên trong waiting_list
+    priority_idx = -1
+    for idx, pat in enumerate(queue_data.get("waiting_list", [])):
+        if pat.get("is_priority", False):
+            priority_idx = idx
+            break
+
+    if priority_idx >= 0:
+        priority_pat = queue_data["waiting_list"].pop(priority_idx)
+        priority_pat["called_at"] = time.time()
+        queue_data["current_calling"] = priority_pat
+    else:
+        # Không có BN ưu tiên — fallback sang next_patient bình thường
+        if queue_data.get("waiting_list"):
+            next_pat = queue_data["waiting_list"].pop(0)
+            next_pat["called_at"] = time.time()
+            queue_data["current_calling"] = next_pat
+        else:
+            queue_data["current_calling"] = None
+
+    save_room_queue(room_num, queue_data)
+    return queue_data
 
 
 def move_patient_to_room(from_room, pat_stt: str, to_room) -> bool:

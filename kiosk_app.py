@@ -1234,21 +1234,64 @@ class KioskApp(QWidget):
         threading.Thread(target=run, daemon=True).start()
 
     def push_priority_to_room(self, room_num):
-        """Mở dialog nhập thông tin BN ưu tiên và đẩy lên Firestore."""
-        dlg = PriorityPatientDialog(room_num, parent=self)
-        if dlg.exec() == QDialog.Accepted:
-            stt_str = dlg.result_stt
-            ten_bn = dlg.result_name or f"ƯU TIÊN SỐ {stt_str}"
-            self.log(f"🚨 Đang thêm BN ưu tiên '{ten_bn}' STT={stt_str} vào Phòng SA {room_num}...")
+        """Đẩy BN hiện đang được scan/điền vào phòng với nhãn ƯU TIÊN.
+        Hoạt động giống push_to_room nhưng BN được gắn is_priority=True
+        và được chèn vào đầu hàng đợi của phòng được chọn.
+        """
+        ma_bn = self.edit_ma.text().strip()
+        ten_bn = self.edit_ten.text().strip()
+        tuoi_str = self.edit_tuoi.text().strip()
 
-            def run():
-                ok = firestore_queue.push_priority_patient(room_num, stt_str, ten_bn)
-                if ok:
-                    self.push_success.emit(room_num, f"[ƯU TIÊN] {ten_bn}", stt_str, [])
-                else:
-                    self.push_failed.emit(room_num, "Lỗi ghi BN ưu tiên lên Firestore.")
+        if not ten_bn:
+            QMessageBox.warning(self, "Cảnh báo",
+                "Vui lòng nhập/quét mã bệnh nhân và điền thông tin trước khi đẩy ưu tiên!")
+            return
 
-            threading.Thread(target=run, daemon=True).start()
+        # Lấy dịch vụ (tích chọn hoặc tất cả nếu không tích)
+        checked_services = []
+        all_services = []
+        for i in range(self.edit_dich_vu.count()):
+            item = self.edit_dich_vu.item(i)
+            all_services.append(item.text())
+            if item.checkState() == Qt.Checked:
+                checked_services.append(item.text())
+        services_to_push = checked_services if checked_services else all_services
+        dich_vu = "\n".join(services_to_push) if services_to_push else "ƯU TIÊN / CẤP CỨU"
+
+        tuoi = 0
+        try:
+            if tuoi_str:
+                tuoi = int(tuoi_str)
+        except ValueError:
+            pass
+
+        ngay_sinh = getattr(self, "patient_ngay_sinh", "")
+        if not ngay_sinh and tuoi_str:
+            try:
+                year = datetime.now().year - int(tuoi_str)
+                ngay_sinh = str(year)
+            except ValueError:
+                pass
+
+        # Vô hiệu hóa các nút để tránh nhấn lặp
+        for btn in self.room_buttons:
+            btn.setEnabled(False)
+        for btn in self.priority_buttons:
+            btn.setEnabled(False)
+
+        self.log(f"🚨 Đang đẩy BN ƯU TIÊN '{ten_bn}' lên đầu hàng đợi Phòng SA {room_num}...")
+
+        def run():
+            stt = firestore_queue.push_priority_patient(
+                room_num, ma_bn, ten_bn, tuoi, ngay_sinh, dich_vu
+            )
+            if stt:
+                self.push_success.emit(room_num, f"🚨 [ƯU TIÊN] {ten_bn}", stt, services_to_push)
+            else:
+                self.push_failed.emit(room_num, "Lỗi ghi BN ưu tiên lên Firestore.")
+
+        threading.Thread(target=run, daemon=True).start()
+
 
     @Slot(str, str, str, list)
     def on_push_success(self, room_num, ten_bn, stt, pushed_services):

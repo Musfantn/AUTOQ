@@ -70,6 +70,7 @@ class Dashboard(QWidget):
 
         # Nút bấm
         btn_next = QPushButton("TIẾP THEO")
+        self.btn_call_priority = QPushButton("🚨 GỌI ƯU TIÊN")
         self.btn_priority = QPushButton("GỌI CẤP CỨU")
         btn_set = QPushButton("NHẢY ĐẾN SỐ (SET)")
         btn_mini = QPushButton("MỞ MINI PANEL")
@@ -82,6 +83,20 @@ class Dashboard(QWidget):
 
         # Style cho các nút (dùng min-height thay vì height để không cắt chữ khi zoom)
         btn_next.setStyleSheet("background-color: #28a745; color: white; min-height: 55px; font-size: 18px; font-weight: bold; border-radius: 6px;")
+        self.btn_call_priority.setStyleSheet("""
+            QPushButton {
+                background-color: #b91c1c;
+                color: white;
+                min-height: 42px;
+                font-size: 15px;
+                font-weight: bold;
+                border-radius: 6px;
+                border: 2px solid #fca5a5;
+            }
+            QPushButton:hover { background-color: #dc2626; }
+            QPushButton:pressed { background-color: #991b1b; }
+        """)
+        self.btn_call_priority.setVisible(False)
         self.btn_priority.setStyleSheet(_CSS_BTN_PRIORITY_NORMAL)
         self.btn_priority.setMinimumHeight(40)
         btn_set.setStyleSheet("background-color: #007bff; color: white; min-height: 38px; font-weight: bold; border-radius: 5px;")
@@ -93,6 +108,7 @@ class Dashboard(QWidget):
 
         # Kết nối sự kiện
         btn_next.clicked.connect(self.next)
+        self.btn_call_priority.clicked.connect(self.call_priority_patient_action)
         self.btn_priority.clicked.connect(self.toggle_priority)
         btn_set.clicked.connect(self.set_number)
         btn_mini.clicked.connect(self.show_mini)
@@ -103,6 +119,7 @@ class Dashboard(QWidget):
 
         left_layout.addWidget(self.number)
         left_layout.addWidget(btn_next)
+        left_layout.addWidget(self.btn_call_priority)
         left_layout.addWidget(self.btn_priority)
         left_layout.addWidget(btn_set)
         left_layout.addWidget(btn_mini)
@@ -272,7 +289,7 @@ class Dashboard(QWidget):
         """Cập nhật dữ liệu hàng đợi từ Server lên UI Dashboard và TV"""
         self.latest_queue_data = queue_data
 
-        # === Xử lý thông báo bệnh nhân ưu tiên ===
+        # === Xử lý thông báo bệnh nhân ưu tiên (priority_notification) ===
         prio_notif = queue_data.get("priority_notification")
         if prio_notif and not prio_notif.get("seen", True):
             ts = prio_notif.get("timestamp", 0.0)
@@ -292,6 +309,18 @@ class Dashboard(QWidget):
         current_calling = queue_data.get("current_calling")
         waiting_list = queue_data.get("waiting_list", [])
         history = queue_data.get("history", [])
+
+        # === Hiển/Ẩn nút GỌI ƯU TIÊN dựa vào danh sách chờ ===
+        has_priority = any(p.get("is_priority", False) for p in waiting_list)
+        if not self.is_duty_mode:
+            self.btn_call_priority.setVisible(has_priority)
+            if has_priority:
+                # Hiện số BN ưu tiên đang chờ trên nút
+                n_prio = sum(1 for p in waiting_list if p.get("is_priority", False))
+                first_prio = next(p for p in waiting_list if p.get("is_priority", False))
+                self.btn_call_priority.setText(
+                    f"🚨 GỌI ƯU TIÊN ({n_prio}) — STT {first_prio.get('stt', '?')}: {first_prio.get('ten_bn', '')}"[:60]
+                )
 
         # 1. Cập nhật Dashboard (Ô hiển thị số lớn bên trái)
         if current_calling:
@@ -483,6 +512,22 @@ class Dashboard(QWidget):
         if self.is_duty_mode:
             return
         self.send_api_command("next")
+
+    def call_priority_patient_action(self):
+        """Gọi ngay bệnh nhân ưu tiên đầu tiên trong hàng đợi."""
+        if self.is_duty_mode:
+            return
+        room_num = self.config.get("room_number", "1").strip()
+
+        def run():
+            try:
+                data = firestore_queue.call_priority_patient(room_num)
+                if data:
+                    self.queue_updated.emit(data)
+            except Exception as e:
+                print(f"[Dashboard] Lỗi gọi BN ưu tiên: {e}")
+
+        threading.Thread(target=run, daemon=True).start()
 
     def toggle_priority(self):
         """Logic Cấp cứu"""

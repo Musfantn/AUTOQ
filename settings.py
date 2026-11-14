@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit,
-    QComboBox, QCheckBox, QSlider, QLabel, QPushButton
+    QComboBox, QCheckBox, QSlider, QLabel, QPushButton, QListView
 )
 from PySide6.QtCore import Qt, Signal
 from config_manager import ConfigManager
@@ -28,7 +28,71 @@ class SettingsWindow(QWidget):
         super().__init__()
         self.config = ConfigManager()
         self.setWindowTitle("Cấu hình Hệ thống Gọi số & Trạm Loa Trung Tâm - BVĐK Kỳ Anh")
-        self.setMinimumSize(580, 520)
+        self.setMinimumSize(600, 540)
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #f8fafc;
+                color: #0f172a;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            QLabel {
+                background-color: transparent;
+                color: #0f172a;
+            }
+            QLineEdit {
+                background-color: #ffffff;
+                color: #0f172a;
+                border: 1px solid #94a3b8;
+                border-radius: 6px;
+                padding: 8px 10px;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0B5FA5;
+            }
+            QComboBox {
+                background-color: #ffffff;
+                color: #0f172a;
+                border: 1px solid #94a3b8;
+                border-radius: 6px;
+                padding: 7px 12px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QComboBox:hover, QComboBox:focus {
+                border: 2px solid #0B5FA5;
+                background-color: #ffffff;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #0f172a;
+                border: 2px solid #0B5FA5;
+                selection-background-color: #0B5FA5;
+                selection-color: #ffffff;
+                outline: 0px;
+                padding: 4px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QComboBox QAbstractItemView::item {
+                background-color: #ffffff;
+                color: #0f172a;
+                min-height: 34px;
+                padding: 6px 12px;
+            }
+            QComboBox QAbstractItemView::item:hover,
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #0B5FA5;
+                color: #ffffff;
+            }
+            QCheckBox {
+                background-color: transparent;
+                color: #0B5FA5;
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -42,6 +106,7 @@ class SettingsWindow(QWidget):
         self.room.setPlaceholderText("Ví dụ: PHÒNG SIÊU ÂM 1, PHÒNG NỘI SOI TAI MŨI HỌNG...")
 
         self.room_number = QComboBox()
+        self._setup_opaque_combobox(self.room_number)
         for r_id in ALL_ROOM_IDS:
             r_info = ROOM_DEFINITIONS[r_id]
             self.room_number.addItem(r_info["combo_label"], r_id)
@@ -58,6 +123,7 @@ class SettingsWindow(QWidget):
 
         # Chế độ Loa của máy trạm (Mặc định Phòng Siêu Âm 2 là Trạm Phát Loa Trung Tâm cho toàn bộ 11 phòng)
         self.cbo_speaker_mode = QComboBox()
+        self._setup_opaque_combobox(self.cbo_speaker_mode)
         self.cbo_speaker_mode.addItem(
             "📢 Trạm Phát Loa Trung Tâm tại P.Siêu Âm 2 (Đọc cho tất cả 11 phòng)", SPEAKER_MODE_HUB
         )
@@ -67,11 +133,9 @@ class SettingsWindow(QWidget):
         self.cbo_speaker_mode.addItem(
             "🔊 Chỉ phát loa riêng của phòng này (Độc lập)", SPEAKER_MODE_LOCAL
         )
-        self.cbo_speaker_mode.setStyleSheet("padding: 6px; font-size: 13px; font-weight: bold; color: #0B5FA5;")
 
         # Cấu hình Bật/Tắt & Âm lượng loa
         self.chk_tts_enabled = QCheckBox("Cho phép kích hoạt gọi loa khi bấm số / gọi lại")
-        self.chk_tts_enabled.setStyleSheet("font-size: 14px; font-weight: bold; color: #0B5FA5;")
 
         vol_row = QHBoxLayout()
         self.slider_volume = QSlider(Qt.Horizontal)
@@ -79,7 +143,7 @@ class SettingsWindow(QWidget):
         self.slider_volume.setValue(100)
         self.lbl_volume_val = QLabel("100%")
         self.lbl_volume_val.setFixedWidth(45)
-        self.lbl_volume_val.setStyleSheet("font-size: 13px; font-weight: bold;")
+        self.lbl_volume_val.setStyleSheet("font-size: 13px; font-weight: bold; color: #0f172a;")
         self.slider_volume.valueChanged.connect(lambda v: self.lbl_volume_val.setText(f"{v}%"))
 
         self.btn_test_tts = QPushButton("🔊 Nghe thử loa")
@@ -92,15 +156,7 @@ class SettingsWindow(QWidget):
         vol_row.addWidget(self.lbl_volume_val)
         vol_row.addWidget(self.btn_test_tts)
 
-        # Style cho LineEdit & ComboBox
-        input_style = "padding: 8px; font-size: 14px;"
-        self.room.setStyleSheet(input_style)
-        self.room_number.setStyleSheet("padding: 6px; font-size: 14px;")
-        self.doctor.setStyleSheet(input_style)
-        self.ktv.setStyleSheet(input_style)
-        self.footer.setStyleSheet(input_style)
-
-        label_style = "font-size: 14px; font-weight: bold;"
+        label_style = "font-size: 14px; font-weight: bold; color: #0f172a;"
         l_rnum = QLabel("Chọn Phòng Khám:")
         l_rnum.setStyleSheet(label_style)
         l_room = QLabel("Tên Hiển Thị TV:")
@@ -140,6 +196,41 @@ class SettingsWindow(QWidget):
 
         self.setLayout(layout)
         self.load_config_to_ui()
+
+    @staticmethod
+    def _setup_opaque_combobox(combo: QComboBox):
+        """Đảm bảo menu xổ xuống (dropdown popup) của QComboBox có nền trắng đặc 100%,
+        không bị trong suốt trên Windows 11 và có độ tương phản cao rõ nét.
+        """
+        list_view = QListView(combo)
+        list_view.setStyleSheet("""
+            QListView {
+                background-color: #ffffff;
+                color: #0f172a;
+                border: 2px solid #0B5FA5;
+                selection-background-color: #0B5FA5;
+                selection-color: #ffffff;
+                outline: 0px;
+                padding: 4px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QListView::item {
+                background-color: #ffffff;
+                color: #0f172a;
+                min-height: 34px;
+                padding: 6px 12px;
+            }
+            QListView::item:hover,
+            QListView::item:selected {
+                background-color: #0B5FA5;
+                color: #ffffff;
+            }
+        """)
+        combo.setView(list_view)
+        popup = combo.view().window()
+        popup.setAttribute(Qt.WA_TranslucentBackground, False)
+        popup.setStyleSheet("background-color: #ffffff; color: #0f172a;")
 
     def get_selected_room_id(self) -> str:
         """Lấy mã định danh chuẩn của phòng đang chọn (VD: '1'..'5', 'tmh', 'dtd', 'dnd', 'lhn', 'cnhh')."""

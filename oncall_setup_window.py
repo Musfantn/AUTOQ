@@ -38,8 +38,14 @@ class OnCallSetupWindow(QWidget):
         self.setMinimumSize(600, 560)
         self.setStyleSheet("""
             QWidget {
+                background-color: #ffffff;
+                color: #0f172a;
                 font-family: 'Segoe UI', Arial;
                 font-size: 14px;
+            }
+            QLineEdit {
+                color: #0f172a;
+                font-weight: 600;
             }
         """)
 

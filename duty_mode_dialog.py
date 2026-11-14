@@ -8,7 +8,7 @@
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QFrame, QProgressBar, QMessageBox
+    QComboBox, QFrame, QProgressBar, QMessageBox, QListView
 )
 from PySide6.QtCore import Qt, QThread, Signal
 from firestore_client import names_match
@@ -142,27 +142,75 @@ class DutyModeDialog(QDialog):
         # ── Separator nhỏ ──
         sep_lbl = QLabel("Chọn bác sĩ trực:")
         sep_lbl.setStyleSheet(
-            "font-size: 13px; color: #444; font-weight: bold; margin-top: 4px; background: transparent;"
+            "font-size: 14px; color: #0f172a; font-weight: bold; margin-top: 4px; background: transparent;"
         )
         card_layout.addWidget(sep_lbl)
 
-        # Dropdown chọn BS
+        # Dropdown chọn BS (Nền trắng đặc 100%, chữ xanh đậm/đen tương phản cao, dòng đang chọn nền xanh đậm chữ trắng)
         self.combo = QComboBox()
+        list_view = QListView(self.combo)
+        list_view.setStyleSheet("""
+            QListView {
+                background-color: #ffffff;
+                color: #0f172a;
+                border: 2px solid #15803d;
+                selection-background-color: #15803d;
+                selection-color: #ffffff;
+                outline: 0px;
+                padding: 4px;
+                font-size: 15px;
+                font-weight: bold;
+            }
+            QListView::item {
+                background-color: #ffffff;
+                color: #0f172a;
+                min-height: 36px;
+                padding: 6px 12px;
+            }
+            QListView::item:hover,
+            QListView::item:selected {
+                background-color: #15803d;
+                color: #ffffff;
+            }
+        """)
+        self.combo.setView(list_view)
+        popup = self.combo.view().window()
+        popup.setAttribute(Qt.WA_TranslucentBackground, False)
+        popup.setStyleSheet("background-color: #ffffff; color: #0f172a;")
+
         self.combo.setStyleSheet("""
             QComboBox {
                 font-size: 15px;
                 font-weight: bold;
-                padding: 7px 12px;
-                border: 1px solid #a5d6a7;
+                padding: 8px 12px;
+                border: 2px solid #2e7d32;
                 border-radius: 7px;
-                background: white;
-                color: #1b5e20;
+                background-color: #ffffff;
+                color: #0f172a;
             }
-            QComboBox::drop-down { border: none; width: 24px; }
+            QComboBox:hover, QComboBox:focus {
+                border: 2px solid #0B5FA5;
+                background-color: #ffffff;
+            }
             QComboBox QAbstractItemView {
-                font-size: 14px;
-                selection-background-color: #43a047;
-                selection-color: white;
+                background-color: #ffffff;
+                color: #0f172a;
+                border: 2px solid #15803d;
+                selection-background-color: #15803d;
+                selection-color: #ffffff;
+                font-size: 15px;
+                font-weight: bold;
+            }
+            QComboBox QAbstractItemView::item {
+                background-color: #ffffff;
+                color: #0f172a;
+                min-height: 36px;
+                padding: 6px 12px;
+            }
+            QComboBox QAbstractItemView::item:hover,
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #15803d;
+                color: #ffffff;
             }
         """)
         self.combo.currentIndexChanged.connect(self._on_combo_changed)
@@ -171,7 +219,7 @@ class DutyModeDialog(QDialog):
         # SĐT preview
         self.phone_preview = QLabel("📞  ---")
         self.phone_preview.setStyleSheet(
-            "font-size: 14px; color: #388e3c; font-weight: bold; background: transparent;"
+            "font-size: 15px; color: #1b5e20; font-weight: bold; background: transparent;"
         )
         card_layout.addWidget(self.phone_preview)
 

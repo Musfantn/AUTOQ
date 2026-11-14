@@ -353,11 +353,34 @@ class AdminApp(QMainWindow):
             }
             QComboBox {
                 background-color: #1e293b;
-                border: 1px solid #334155;
+                border: 1px solid #475569;
                 border-radius: 6px;
                 padding: 6px 10px;
-                color: #f1f5f9;
+                color: #f8fafc;
                 font-size: 13px;
+                font-weight: bold;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e293b;
+                color: #f8fafc;
+                border: 2px solid #38bdf8;
+                selection-background-color: #0284c7;
+                selection-color: #ffffff;
+                outline: 0px;
+                padding: 4px;
+                font-size: 13px;
+                font-weight: bold;
+            }
+            QComboBox QAbstractItemView::item {
+                background-color: #1e293b;
+                color: #f8fafc;
+                min-height: 30px;
+                padding: 5px 10px;
+            }
+            QComboBox QAbstractItemView::item:hover,
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #0284c7;
+                color: #ffffff;
             }
             QTableWidget {
                 background-color: #1e293b;

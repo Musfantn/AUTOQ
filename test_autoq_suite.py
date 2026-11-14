@@ -15,7 +15,7 @@ from datetime import datetime
 os.environ.setdefault("QT_LOGGING_RULES", "qt.multimedia.ffmpeg*=false")
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QCoreApplication
+from PySide6.QtCore import QCoreApplication, Qt
 
 import firestore_client
 import firestore_queue
@@ -381,6 +381,13 @@ class Test07_SQLiteConcurrencyAndGUIComponents(unittest.TestCase):
 
         sw = SettingsWindow()
         self.assertEqual(sw.room_number.count(), 11)
+        self.assertFalse(sw.room_number.view().window().testAttribute(Qt.WA_TranslucentBackground))
+        self.assertFalse(sw.cbo_speaker_mode.view().window().testAttribute(Qt.WA_TranslucentBackground))
+
+        from duty_mode_dialog import DutyModeDialog
+        duty_dlg = DutyModeDialog(OnCallManager())
+        self.assertFalse(duty_dlg.combo.view().window().testAttribute(Qt.WA_TranslucentBackground))
+        duty_dlg.close()
 
         admin = AdminApp()
         self.assertEqual(len(admin.room_cards), 11)

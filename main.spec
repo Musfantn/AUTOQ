@@ -6,21 +6,35 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('assets', 'assets'),       # logo.png
+        ('assets', 'assets'),       # logo.png, dingdong.wav & tts_offline/*.mp3
         ('hospital.ico', '.'),      # icon trong thư mục gốc
     ],
     hiddenimports=[
+        'PySide6.QtCore',
+        'PySide6.QtGui',
+        'PySide6.QtWidgets',
         'PySide6.QtNetwork',        # dùng trong tv_display.py
-        'google.cloud.firestore',
-        'google.auth.credentials',
-        'google.api_core',
+        'PySide6.QtMultimedia',     # dùng trong tts_service.py
+        'PySide6.QtTextToSpeech',   # fallback TTS
+        'speaker_hub',              # Trạm phát loa trung tâm (11 phòng)
+        'tts_service',              # Dịch vụ đọc loa TTS
+        'firestore_client',
+        'firestore_queue',
+        'firestore_sync',
+        'config_manager',
+        'oncall_manager',
+        'oncall_setup_window',
+        'duty_mode_dialog',
+        'mini_panel',
+        'settings',
+        'tv_display',
+        'dashboard',
         'sqlite3',
         'urllib.request',
         'urllib.parse',
         'json',
         'datetime',
         'threading',
-        'his_bridge',
     ],
     hookspath=[],
     hooksconfig={},

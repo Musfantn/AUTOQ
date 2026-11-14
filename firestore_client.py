@@ -7,6 +7,7 @@
 
 import urllib.request
 import urllib.parse
+import urllib.error
 import json
 import os
 import sys
@@ -100,12 +101,18 @@ def doc_id_from_name(doc: dict) -> str:
 # ─── HTTP HELPERS ────────────────────────────────────────────────────────────
 
 def firestore_get(path: str) -> dict | None:
-    """GET một document. Trả về raw JSON dict hoặc None nếu lỗi / không tồn tại."""
+    """GET một document. Trả về raw JSON dict hoặc None nếu lỗi / chưa tồn tại (404)."""
     url = f"{FIRESTORE_BASE}/{path}?key={FIREBASE_API_KEY}"
     try:
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
             return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            # Tài liệu chưa được khởi tạo trên Firestore (bình thường với phòng mới)
+            return None
+        _log(f"[FirestoreClient] Lỗi GET '{path}': {e}")
+        return None
     except Exception as e:
         _log(f"[FirestoreClient] Lỗi GET '{path}': {e}")
         return None

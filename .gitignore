@@ -44,3 +44,7 @@ desktop.ini
 !.vscode/extensions.json
 .idea
 
+# ── Nested separate repositories ──────────────────────────────────────────────
+Radsched/
+TaskView/
+

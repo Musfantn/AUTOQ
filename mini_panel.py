@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import *
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
 from PySide6.QtCore import Qt, QPoint, QTimer, QTime
 from config_manager import ConfigManager
 
@@ -12,11 +12,12 @@ class MiniPanel(QWidget):
         self.old_pos = None
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        self.setWindowOpacity(0.9)
+        self.setWindowOpacity(0.92)
         self.setStyleSheet("background:#0B5FA5; color:white; border-radius:10px; border: 1px solid white;")
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 5, 10, 5)
+        layout.setSpacing(6)
 
         # ===== duty indicator =====
         self.duty_indicator = QLabel("🌙 TRỰC")
@@ -31,49 +32,57 @@ class MiniPanel(QWidget):
         """)
         self.duty_indicator.setVisible(False)
 
-        # Nhãn số: Gán cố định độ rộng để không bị nhảy layout khi đổi số
+        # Nhãn số hiện tại: cố định độ rộng để không nhảy layout
         self.number = QLabel("000")
-        self.number.setFixedWidth(50)
+        self.number.setFixedWidth(56)
+        self.number.setAlignment(Qt.AlignCenter)
         self.number.setStyleSheet("font-size:22px; font-weight:bold; color: #FFD700; border: none;")
 
-        btn_next = QPushButton("TIẾP THEO")
-        self.btn_call_priority = QPushButton("🚨 ƯU TIÊN")
-        btn_dash = QPushButton("PHÓNG TO")
+        self.btn_next = QPushButton("▶ TIẾP THEO")
+        self.btn_recall = QPushButton("🔊 GỌI LẠI")
+        self.btn_skip = QPushButton("⏭ CHƯA VÀO")
+        self.btn_dash = QPushButton("PHÓNG TO")
 
-        btn_next.setStyleSheet("background: #28a745; border-radius: 5px; padding: 5px; border: none;")
-        self.btn_call_priority.setStyleSheet("""
-            QPushButton {
-                background: #b91c1c;
-                color: white;
-                font-weight: bold;
-                border-radius: 5px;
-                padding: 5px 8px;
-                border: 1px solid #fca5a5;
-            }
-            QPushButton:hover { background: #dc2626; }
-        """)
-        self.btn_call_priority.setVisible(False)
-        btn_dash.setStyleSheet("background: #6c757d; border-radius: 5px; padding: 5px; border: none;")
+        self.btn_next.setStyleSheet(
+            "QPushButton { background: #28a745; color: white; font-weight: bold; border-radius: 5px; padding: 6px 10px; border: none; }"
+            "QPushButton:hover { background: #218838; }"
+        )
+        self.btn_recall.setStyleSheet(
+            "QPushButton { background: #f59e0b; color: white; font-weight: bold; border-radius: 5px; padding: 6px 10px; border: none; }"
+            "QPushButton:hover { background: #d97706; }"
+        )
+        self.btn_skip.setStyleSheet(
+            "QPushButton { background: #0284c7; color: white; font-weight: bold; border-radius: 5px; padding: 6px 8px; border: none; }"
+            "QPushButton:hover { background: #0369a1; }"
+        )
+        self.btn_skip.setToolTip("Bệnh nhân chưa vào phòng: Lưu vào danh sách chờ gọi lại và gọi số tiếp theo")
+        self.btn_dash.setStyleSheet(
+            "QPushButton { background: #6c757d; color: white; font-weight: bold; border-radius: 5px; padding: 6px 8px; border: none; }"
+            "QPushButton:hover { background: #5a6268; }"
+        )
 
-        # Kết nối nút NEXT và GỌI ƯU TIÊN về Dashboard
-        btn_next.clicked.connect(self.dashboard.next)
-        self.btn_call_priority.clicked.connect(self.dashboard.call_priority_patient_action)
-        btn_dash.clicked.connect(self.restore)
+        # Kết nối các nút điều khiển về Dashboard
+        self.btn_next.clicked.connect(self.dashboard.next)
+        self.btn_recall.clicked.connect(self.dashboard.recall_current)
+        self.btn_skip.clicked.connect(self.dashboard.skip_and_next)
+        self.btn_dash.clicked.connect(self.restore)
 
         layout.addWidget(self.duty_indicator)
         layout.addWidget(self.number)
-        layout.addWidget(btn_next)
-        layout.addWidget(self.btn_call_priority)
-        layout.addWidget(btn_dash)
+        layout.addWidget(self.btn_next)
+        layout.addWidget(self.btn_recall)
+        layout.addWidget(self.btn_skip)
+        layout.addWidget(self.btn_dash)
         layout.addStretch()
 
         # ===== clock =====
         self.time_label = QLabel("00:00:00")
-        self.time_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #FFD700; border: none;")
+        self.time_label.setStyleSheet("font-size: 15px; font-weight: bold; color: #FFD700; border: none;")
         self.time_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(self.time_label)
 
-        self.setFixedSize(500, 50)
+        self.setFixedSize(580, 52)
+        self.load_last_position()
 
         # ===== clock timer =====
         self.clock_timer = QTimer(self)
@@ -82,15 +91,18 @@ class MiniPanel(QWidget):
         self.update_time()
 
     def update_time(self):
-        """Cập nhật đồng hồ realtime"""
+        """Cập nhật đồng hồ realtime."""
         t = QTime.currentTime()
         self.time_label.setText(t.toString("HH:mm:ss"))
 
     def load_last_position(self):
-        """Đọc tọa độ x, y từ config và di chuyển panel tới đó"""
-        last_x = int(self.config.get("mini_x", 100))
-        last_y = int(self.config.get("mini_y", 100))
-        self.move(last_x, last_y)
+        """Đọc tọa độ x, y từ config và di chuyển panel tới đó."""
+        try:
+            last_x = int(self.config.get("mini_x", 100))
+            last_y = int(self.config.get("mini_y", 100))
+            self.move(last_x, last_y)
+        except Exception:
+            pass
 
     # --- LOGIC CHO PHÉP KÉO CHUỘT ---
     def mousePressEvent(self, event):
@@ -105,35 +117,27 @@ class MiniPanel(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.old_pos = None
-        # Khi thả chuột, lưu ngay vị trí mới vào database
         self.config.set("mini_x", self.x())
         self.config.set("mini_y", self.y())
 
     def update_number(self, n):
-        """Cập nhật text và ép label vẽ lại"""
+        """Cập nhật số hiện tại trên MiniPanel."""
         self.number.setText(str(n))
         self.number.repaint()
 
-    def set_priority_visible(self, active: bool):
-        """Hiện/Ẩn nút gọi bệnh nhân ưu tiên trên mini panel."""
-        if hasattr(self, 'btn_call_priority'):
-            self.btn_call_priority.setVisible(active)
-
     # ===== duty mode indicator =====
-    def set_duty_mode(self, active):
+    def set_duty_mode(self, active: bool):
         """Bật/tắt ký hiệu chế độ trực trên mini panel."""
         self.duty_indicator.setVisible(active)
+        self.btn_next.setEnabled(not active)
+        self.btn_recall.setEnabled(not active)
+        self.btn_skip.setEnabled(not active)
         if active:
-            if hasattr(self, 'btn_call_priority'):
-                self.btn_call_priority.setVisible(False)
             self.number.setText("TRỰC")
-            self.number.setFixedWidth(50)
             self.number.setStyleSheet("font-size: 16px; font-weight: 700; color: #FF9800; border: none;")
         else:
-            # Khôi phục lại số hiện tại từ dashboard
             current_number = self.dashboard.number.text()
             self.number.setText(current_number)
-            self.number.setFixedWidth(50)
             self.number.setStyleSheet("font-size: 22px; font-weight: bold; color: #FFD700; border: none;")
             self.number.repaint()
 

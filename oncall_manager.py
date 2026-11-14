@@ -22,13 +22,15 @@ class OnCallManager:
         self._lock = threading.Lock()
         db_path = os.path.join(get_db_dir(), "config.db")
         # check_same_thread=False cho phép dùng connection từ nhiều thread
-        # _lock đảm bảo chỉ một thread ghi tại một thời điểm
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        # _lock đảm bảo đồng bộ đọc/ghi an toàn giữa UI và SyncWorker
+        self.conn = sqlite3.connect(db_path, timeout=10.0, check_same_thread=False)
         self._migrate()
 
     def _migrate(self):
         """Tạo / nâng cấp bảng oncall_doctors."""
         with self._lock:
+            self.conn.execute("PRAGMA journal_mode=WAL;")
+            self.conn.execute("PRAGMA synchronous=NORMAL;")
             self.conn.execute("""
             CREATE TABLE IF NOT EXISTS oncall_doctors(
                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,19 +56,21 @@ class OnCallManager:
 
     def get_all(self) -> list[tuple]:
         """Trả về [(id, name, phone), ...] – tương thích code cũ."""
-        cur = self.conn.cursor()
-        cur.execute("SELECT id, name, phone FROM oncall_doctors ORDER BY role, name")
-        return cur.fetchall()
+        with self._lock:
+            cur = self.conn.cursor()
+            cur.execute("SELECT id, name, phone FROM oncall_doctors ORDER BY role, name")
+            return cur.fetchall()
 
     def get_all_full(self) -> list[dict]:
         """Trả về danh sách đầy đủ dưới dạng dict."""
-        cur = self.conn.cursor()
-        cur.execute("""
-            SELECT id, name, phone, firestore_id, role, specialty
-            FROM oncall_doctors ORDER BY role, name
-        """)
-        cols = ["id", "name", "phone", "firestore_id", "role", "specialty"]
-        return [dict(zip(cols, row)) for row in cur.fetchall()]
+        with self._lock:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT id, name, phone, firestore_id, role, specialty
+                FROM oncall_doctors ORDER BY role, name
+            """)
+            cols = ["id", "name", "phone", "firestore_id", "role", "specialty"]
+            return [dict(zip(cols, row)) for row in cur.fetchall()]
 
     def add(self, name: str, phone: str, firestore_id: str = None,
             role: str = "doctor", specialty: str = "") -> int:
@@ -96,20 +100,22 @@ class OnCallManager:
 
     def get_by_id(self, doc_id: int) -> tuple | None:
         """Lấy (id, name, phone) hoặc None."""
-        cur = self.conn.cursor()
-        cur.execute("SELECT id, name, phone FROM oncall_doctors WHERE id=?", (doc_id,))
-        return cur.fetchone()
+        with self._lock:
+            cur = self.conn.cursor()
+            cur.execute("SELECT id, name, phone FROM oncall_doctors WHERE id=?", (doc_id,))
+            return cur.fetchone()
 
     # ─── Tìm kiếm ─────────────────────────────────────────────────────────────
 
     def find_by_name(self, name: str) -> dict | None:
         """Tìm nhân sự theo tên (chuẩn hóa lowercase + bỏ tiền tố BS./TK.)."""
         target = clean_name(name)
-        for row in self.get_all_full():
+        all_rows = self.get_all_full()
+        for row in all_rows:
             if clean_name(row["name"]) == target:
                 return row
         # Thử khớp gần đúng (contains)
-        for row in self.get_all_full():
+        for row in all_rows:
             n = clean_name(row["name"])
             if target in n or n in target:
                 return row
@@ -117,15 +123,16 @@ class OnCallManager:
 
     def find_by_firestore_id(self, firestore_id: str) -> dict | None:
         """Tìm nhân sự theo Firestore document ID."""
-        cur = self.conn.cursor()
-        cur.execute(
-            "SELECT id, name, phone, firestore_id, role, specialty FROM oncall_doctors WHERE firestore_id=?",
-            (firestore_id,)
-        )
-        row = cur.fetchone()
-        if row:
-            return dict(zip(["id", "name", "phone", "firestore_id", "role", "specialty"], row))
-        return None
+        with self._lock:
+            cur = self.conn.cursor()
+            cur.execute(
+                "SELECT id, name, phone, firestore_id, role, specialty FROM oncall_doctors WHERE firestore_id=?",
+                (firestore_id,)
+            )
+            row = cur.fetchone()
+            if row:
+                return dict(zip(["id", "name", "phone", "firestore_id", "role", "specialty"], row))
+            return None
 
     # ─── Đồng bộ Firestore ────────────────────────────────────────────────────
 

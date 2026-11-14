@@ -6,12 +6,14 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
+        ('assets', 'assets'),       # logo.png, dingdong.wav & tts_offline/*.mp3
         ('hospital.ico', '.'),      # icon trong thư mục gốc
     ],
     hiddenimports=[
-        'google.cloud.firestore',
-        'google.auth.credentials',
-        'google.api_core',
+        'speaker_hub',
+        'firestore_client',
+        'firestore_queue',
+        'config_manager',
         'sqlite3',
         'urllib.request',
         'urllib.parse',

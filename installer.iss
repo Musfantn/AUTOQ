@@ -7,7 +7,7 @@
 ; ============================================================
 
 #define MyAppName      "AUTOQ - Hệ Thống Gọi Số Khoa CĐHA & TDCN"
-#define MyAppVersion   "6.0"
+#define MyAppVersion   "7.0"
 #define MyAppPublisher "Bs Nguyễn Việt Phương - BVĐK Thị Xã Kỳ Anh"
 #define MyAppExeName   "RadiologyQueue.exe"
 #define MyAdminExeName "AdminQueue.exe"

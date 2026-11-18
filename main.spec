@@ -29,6 +29,8 @@ a = Analysis(
         'settings',
         'tv_display',
         'dashboard',
+        'chat_service',
+        'chat_window',
         'sqlite3',
         'urllib.request',
         'urllib.parse',

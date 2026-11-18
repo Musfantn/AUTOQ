@@ -1,20 +1,25 @@
 import sys
 import csv
 import time
+import zipfile
 import threading
 from datetime import datetime
+from xml.sax.saxutils import escape as xml_escape
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton, QComboBox,
     QVBoxLayout, QHBoxLayout, QGridLayout, QFrame, QTableWidget,
     QTableWidgetItem, QHeaderView, QTabWidget, QFileDialog, QMessageBox,
-    QProgressBar, QScrollArea, QInputDialog, QDialog, QLineEdit, QFormLayout
+    QProgressBar, QScrollArea, QInputDialog, QDialog, QLineEdit, QFormLayout,
+    QListView
 )
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QFont
 
 import firestore_queue
 from firestore_client import firestore_list, doc_to_dict, doc_id_from_name
+from firestore_sync import fetch_all_personnel, fetch_today_room_assignments
+from oncall_manager import OnCallManager
 from speaker_hub import (
     ALL_ROOM_IDS,
     ROOM_DEFINITIONS,
@@ -106,6 +111,139 @@ def extract_first_case_time_str(q_data: dict) -> str:
         return "---"
     earliest = min(candidates)
     return datetime.fromtimestamp(earliest).strftime("%H:%M:%S")
+
+
+def write_autoq_excel_xlsx(file_path: str, styled_rows: list[tuple[list, str]]) -> None:
+    """Ghi trực tiếp file Microsoft Excel (.xlsx) chuẩn OOXML với định dạng bảng biểu,
+    tiêu đề in đậm, nền màu xanh y tế (#0B5FA5), khung viền ô và độ rộng cột tự động.
+    Không phụ thuộc thư viện ngoài (chạy độc lập 100% khi đóng gói PyInstaller .exe).
+
+    Args:
+        file_path: Đường dẫn file .xlsx cần lưu.
+        styled_rows: Danh sách [(row_values_list, style_name), ...]
+                     style_name thuộc {'title', 'meta', 'section', 'header', 'data', 'empty'}
+    """
+    style_idx_map = {
+        "empty": 0,
+        "meta": 1,
+        "title": 2,
+        "section": 3,
+        "header": 4,
+        "data": 5,
+    }
+
+    def col_letter(col_idx_0: int) -> str:
+        res = ""
+        n = col_idx_0 + 1
+        while n > 0:
+            n, rem = divmod(n - 1, 26)
+            res = chr(65 + rem) + res
+        return res
+
+    sheet_rows_xml = []
+    for r_idx, (vals, st_name) in enumerate(styled_rows, start=1):
+        s_id = style_idx_map.get(st_name, 0)
+        row_ht = ' ht="24" customHeight="1"' if st_name in ("title", "header") else (
+            ' ht="20" customHeight="1"' if st_name in ("section", "data") else ""
+        )
+        cells_xml = []
+        for c_idx, raw_val in enumerate(vals):
+            cell_ref = f"{col_letter(c_idx)}{r_idx}"
+            val_str = "" if raw_val is None else str(raw_val)
+            escaped = xml_escape(val_str)
+            cells_xml.append(
+                f'<c r="{cell_ref}" s="{s_id}" t="inlineStr"><is><t>{escaped}</t></is></c>'
+            )
+        sheet_rows_xml.append(f'<row r="{r_idx}"{row_ht}>{"".join(cells_xml)}</row>')
+
+    worksheet_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        '<cols>'
+        '<col min="1" max="1" width="30" customWidth="1"/>'
+        '<col min="2" max="7" width="22" customWidth="1"/>'
+        '</cols>'
+        f'<sheetData>{"".join(sheet_rows_xml)}</sheetData>'
+        '</worksheet>'
+    )
+
+    styles_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="5">
+    <font><sz val="11"/><name val="Segoe UI"/></font>
+    <font><b/><sz val="14"/><color rgb="FF0B5FA5"/><name val="Segoe UI"/></font>
+    <font><b/><sz val="11"/><color rgb="FF0F172A"/><name val="Segoe UI"/></font>
+    <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Segoe UI"/></font>
+    <font><sz val="11"/><color rgb="FF0F172A"/><name val="Segoe UI"/></font>
+  </fonts>
+  <fills count="4">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FF0B5FA5"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFE0F2FE"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color rgb="FF94A3B8"/></left>
+      <right style="thin"><color rgb="FF94A3B8"/></right>
+      <top style="thin"><color rgb="FF94A3B8"/></top>
+      <bottom style="thin"><color rgb="FF94A3B8"/></bottom>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+  </cellStyleXfs>
+  <cellXfs count="6">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+    <xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+    <xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">
+      <alignment vertical="center"/>
+    </xf>
+  </cellXfs>
+</styleSheet>"""
+
+    workbook_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Bao Cao Thong Ke" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>"""
+
+    workbook_rels_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>"""
+
+    root_rels_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>"""
+
+    content_types_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>"""
+
+    with zipfile.ZipFile(file_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("[Content_Types].xml", content_types_xml)
+        zf.writestr("_rels/.rels", root_rels_xml)
+        zf.writestr("xl/workbook.xml", workbook_xml)
+        zf.writestr("xl/_rels/workbook.xml.rels", workbook_rels_xml)
+        zf.writestr("xl/styles.xml", styles_xml)
+        zf.writestr("xl/worksheets/sheet1.xml", worksheet_xml)
 
 
 # =============================================================================
@@ -306,13 +444,14 @@ class AdminChangePasswordDialog(QDialog):
 
 class AdminApp(QMainWindow):
     rooms_data_updated = Signal(dict)
+    personnel_synced = Signal(list, dict, bool)  # (doctor_names, room_doctor_assignments, silent)
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle(
             "AUTOQ ADMIN CENTER - KIỂM SOÁT LƯỢNG BỆNH NHÂN & BÁO CÁO (11 PHÒNG SIÊU ÂM, NỘI SOI & THĂM DÒ CHỨC NĂNG)"
         )
-        self.resize(1260, 840)
+        self.resize(1280, 860)
 
         self.setStyleSheet("""
             QMainWindow, QWidget {
@@ -419,6 +558,12 @@ class AdminApp(QMainWindow):
 
         self.all_rooms_cache = {}
         self._is_polling = False
+        self._is_syncing_personnel = False
+        self.oncall_mgr = OnCallManager()
+        # Danh sách tên Bác sĩ đồng bộ từ Firestore + Local DB
+        self.doctor_names: list[str] = [row[1].strip() for row in self.oncall_mgr.get_all() if row[1]]
+        # Ánh xạ mã phòng ('1'..'5', 'tmh', ...) -> Tên Bác sĩ đang phụ trách phòng đó
+        self.room_doctor_map: dict[str, str] = {}
 
         main_widget = QWidget()
         main_layout = QVBoxLayout(main_widget)
@@ -432,6 +577,18 @@ class AdminApp(QMainWindow):
         )
         lbl_title.setFont(QFont("Segoe UI", 13, QFont.Bold))
         lbl_title.setStyleSheet("color: #38bdf8;")
+
+        self.btn_sync_personnel = QPushButton("🔄 Đồng bộ Nhân sự & Phân phòng")
+        self.btn_sync_personnel.setToolTip(
+            "Đồng bộ danh sách Bác sĩ và lịch phân buồng hôm nay từ Firestore để gắn Bác sĩ vào từng phòng"
+        )
+        self.btn_sync_personnel.setStyleSheet(
+            "QPushButton { background-color: #059669; color: #ffffff; font-size: 12px; "
+            "font-weight: bold; padding: 6px 12px; border-radius: 6px; }"
+            "QPushButton:hover { background-color: #047857; }"
+            "QPushButton:disabled { background-color: #334155; color: #94a3b8; }"
+        )
+        self.btn_sync_personnel.clicked.connect(lambda: self.sync_personnel_and_assignments_async(silent=False))
 
         self.lbl_season_badge = QLabel("")
         self.lbl_season_badge.setStyleSheet(
@@ -450,6 +607,7 @@ class AdminApp(QMainWindow):
         self.lbl_clock.setStyleSheet("color: #10b981;")
 
         header_box.addWidget(lbl_title, 1)
+        header_box.addWidget(self.btn_sync_personnel)
         header_box.addWidget(self.lbl_season_badge)
         header_box.addWidget(self.btn_change_pwd)
         header_box.addWidget(self.lbl_clock)
@@ -470,6 +628,7 @@ class AdminApp(QMainWindow):
         self.setCentralWidget(main_widget)
 
         self.rooms_data_updated.connect(self.on_rooms_data_updated)
+        self.personnel_synced.connect(self._on_personnel_synced)
 
         self.timer_clock = QTimer(self)
         self.timer_clock.timeout.connect(self._update_clock)
@@ -480,6 +639,7 @@ class AdminApp(QMainWindow):
         self.timer_poll.timeout.connect(self.poll_all_rooms_async)
         self.timer_poll.start(3000)
         QTimer.singleShot(100, self.poll_all_rooms_async)
+        QTimer.singleShot(250, lambda: self.sync_personnel_and_assignments_async(silent=True))
 
     def _update_clock(self):
         now = datetime.now()
@@ -585,6 +745,25 @@ class AdminApp(QMainWindow):
         top_row.addWidget(badge_status)
         f_layout.addLayout(top_row)
 
+        # Row: Bác sĩ phụ trách phòng (Đồng bộ từ Firestore / Chọn trực tiếp để gắn BS với phòng)
+        doc_row = QHBoxLayout()
+        doc_row.setSpacing(6)
+        lbl_doc_tag = QLabel("👨‍⚕️ BS:")
+        lbl_doc_tag.setStyleSheet("font-size: 12px; font-weight: bold; color: #fbbf24; border: none;")
+
+        cbo_doctor = QComboBox()
+        cbo_doctor.setToolTip("Chọn Bác sĩ đang phụ trách phòng này (tự động đồng bộ từ Firestore)")
+        cbo_doctor.addItem("--- Chưa gắn BS ---", "")
+        for d_name in self.doctor_names:
+            cbo_doctor.addItem(d_name, d_name)
+        cbo_doctor.currentIndexChanged.connect(
+            lambda idx, r=room_id: self._on_room_doctor_combo_changed(r, idx)
+        )
+
+        doc_row.addWidget(lbl_doc_tag)
+        doc_row.addWidget(cbo_doctor, 1)
+        f_layout.addLayout(doc_row)
+
         # Current Calling Number Box
         curr_box = QFrame()
         curr_box.setStyleSheet("background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px;")
@@ -640,6 +819,7 @@ class AdminApp(QMainWindow):
             "frame": frame,
             "name": lbl_name,
             "badge": badge_status,
+            "cbo_doctor": cbo_doctor,
             "curr_pat": lbl_curr_pat,
             "curr_sub": lbl_curr_sub,
             "load_bar": load_bar,
@@ -688,7 +868,7 @@ class AdminApp(QMainWindow):
         btn_refresh.clicked.connect(self.poll_all_rooms_async)
         fl_layout.addWidget(btn_refresh)
 
-        btn_excel = QPushButton("📥 XUẤT EXCEL / CSV")
+        btn_excel = QPushButton("📥 XUẤT EXCEL (.XLSX)")
         btn_excel.setStyleSheet("background-color: #059669;")
         btn_excel.clicked.connect(self.export_excel_csv)
         fl_layout.addWidget(btn_excel)
@@ -707,7 +887,7 @@ class AdminApp(QMainWindow):
         self.table_patients = QTableWidget()
         self.table_patients.setColumnCount(7)
         self.table_patients.setHorizontalHeaderLabels([
-            "Phòng", "Số Thứ Tự (STT)", "Trạng thái", "Số lần gọi loa",
+            "Bác sĩ phụ trách", "Số Thứ Tự (STT)", "Trạng thái", "Số lần gọi loa",
             "Thời điểm gọi", "Thời điểm hoàn thành", "Thời gian khám (phút)"
         ])
         header = self.table_patients.horizontalHeader()
@@ -723,7 +903,7 @@ class AdminApp(QMainWindow):
         sd_layout.setContentsMargins(10, 10, 10, 10)
         sd_layout.setSpacing(8)
 
-        lbl_side_title = QLabel("📊 THỐNG KÊ LƯỢNG BN & GIỜ BẮT ĐẦU CA ĐẦU TIÊN")
+        lbl_side_title = QLabel("📊 THỐNG KÊ THEO BÁC SĨ PHỤ TRÁCH & GIỜ CA ĐẦU TIÊN")
         lbl_side_title.setFont(QFont("Segoe UI", 12, QFont.Bold))
         lbl_side_title.setStyleSheet("color: #38bdf8; border: none;")
         sd_layout.addWidget(lbl_side_title)
@@ -731,7 +911,7 @@ class AdminApp(QMainWindow):
         self.table_room_summary = QTableWidget()
         self.table_room_summary.setColumnCount(6)
         self.table_room_summary.setHorizontalHeaderLabels([
-            "Phòng", "Ca đầu tiên", "Số hiện tại", "Đã khám", "Qua lượt", "TB (phút)"
+            "Bác sĩ phụ trách", "Ca đầu tiên", "Số hiện tại", "Đã khám", "Qua lượt", "TB (phút)"
         ])
         self.table_room_summary.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         sd_layout.addWidget(self.table_room_summary)
@@ -759,6 +939,156 @@ class AdminApp(QMainWindow):
     def _on_season_mode_changed(self):
         self._populate_shift_filter_options()
         self.apply_report_filter()
+
+    # =========================================================================
+    # ĐỒNG BỘ NHÂN SỰ & GẮN BÁC SĨ PHỤ TRÁCH TỪNG PHÒNG TỪ FIRESTORE
+    # =========================================================================
+    def get_room_doctor_label(self, room_id: str) -> str:
+        """Trả về tên Bác sĩ phụ trách phòng (dùng thay thế tên phòng khi thống kê và xuất báo cáo).
+        Nếu phòng đang ở chế độ trực hoặc đã gắn Bác sĩ thì trả về tên Bác sĩ đó;
+        nếu phòng chưa có Bác sĩ nào phụ trách thì fallback về tên viết tắt của phòng.
+        """
+        r_str = str(room_id).strip().lower()
+        q_data = self.all_rooms_cache.get(r_str, {})
+
+        if q_data.get("is_duty_mode") and q_data.get("duty_doctor"):
+            return str(q_data["duty_doctor"]).strip()
+
+        mapped_doc = (self.room_doctor_map.get(r_str) or "").strip()
+        if mapped_doc and mapped_doc != "---":
+            return mapped_doc
+
+        q_doc = (q_data.get("doctor_name") or "").strip()
+        if q_doc and q_doc != "---":
+            return q_doc
+
+        return get_room_short_name(r_str)
+
+    def _refresh_room_doctor_combos_and_filter(self):
+        """Cập nhật danh sách lựa chọn Bác sĩ trên 11 thẻ phòng và trên bộ lọc Tab Báo cáo."""
+        for r_id, card in self.room_cards.items():
+            cbo: QComboBox = card.get("cbo_doctor")
+            if not cbo:
+                continue
+            current_doc = (self.room_doctor_map.get(r_id) or "").strip()
+            cbo.blockSignals(True)
+            cbo.clear()
+            cbo.addItem("--- Chưa gắn BS ---", "")
+
+            seen = {""}
+            for d_name in self.doctor_names:
+                n = d_name.strip()
+                if n and n.lower() not in seen:
+                    seen.add(n.lower())
+                    cbo.addItem(n, n)
+
+            if current_doc and current_doc.lower() not in seen:
+                cbo.addItem(current_doc, current_doc)
+
+            idx = cbo.findData(current_doc)
+            cbo.setCurrentIndex(idx if idx >= 0 else 0)
+            cbo.blockSignals(False)
+
+        # Cập nhật combobox chọn phòng ở Tab 2 để hiển thị cả tên Bác sĩ phụ trách
+        if hasattr(self, "cbo_room_filter"):
+            prev_val = self.cbo_room_filter.currentData() or "ALL"
+            self.cbo_room_filter.blockSignals(True)
+            self.cbo_room_filter.clear()
+            self.cbo_room_filter.addItem("Tất cả các phòng / Bác sĩ (11 phòng)", "ALL")
+            for r_id in ALL_ROOM_IDS:
+                doc_name = (self.room_doctor_map.get(r_id) or "").strip()
+                base_lbl = ROOM_DEFINITIONS[r_id]["combo_label"]
+                lbl = f"{doc_name} ({base_lbl})" if doc_name else base_lbl
+                self.cbo_room_filter.addItem(lbl, r_id)
+            idx = self.cbo_room_filter.findData(prev_val)
+            self.cbo_room_filter.setCurrentIndex(idx if idx >= 0 else 0)
+            self.cbo_room_filter.blockSignals(False)
+
+    def _on_room_doctor_combo_changed(self, room_id: str, _index: int):
+        """Khi Admin chọn Bác sĩ trực tiếp trên thẻ phòng -> Gắn BS vào phòng đó & lưu lên Firestore."""
+        r_str = str(room_id).strip().lower()
+        card = self.room_cards.get(r_str)
+        if not card or "cbo_doctor" not in card:
+            return
+        doc_name = (card["cbo_doctor"].currentData() or "").strip()
+        self.room_doctor_map[r_str] = doc_name
+        if r_str in self.all_rooms_cache:
+            self.all_rooms_cache[r_str]["doctor_name"] = doc_name
+
+        self._refresh_room_doctor_combos_and_filter()
+        self.apply_report_filter()
+
+        threading.Thread(
+            target=lambda: firestore_queue.set_room_staff(r_str, doc_name),
+            daemon=True,
+        ).start()
+
+    def sync_personnel_and_assignments_async(self, silent: bool = True):
+        """Đồng bộ danh sách Bác sĩ từ collection 'personnel' và phân buồng từ 'assignments' (TaskView)."""
+        if self._is_syncing_personnel:
+            return
+        self._is_syncing_personnel = True
+        self.btn_sync_personnel.setEnabled(False)
+        self.btn_sync_personnel.setText("⏳ Đang đồng bộ...")
+
+        def run():
+            try:
+                personnel = fetch_all_personnel()
+                if personnel:
+                    self.oncall_mgr.sync_from_firestore(personnel)
+                    doc_names = [p["name"].strip() for p in personnel if p.get("name")]
+                else:
+                    doc_names = [row[1].strip() for row in self.oncall_mgr.get_all() if row[1]]
+
+                today_assignments = fetch_today_room_assignments()
+                self.personnel_synced.emit(doc_names, today_assignments, silent)
+            except Exception as e:
+                print(f"[AdminApp] Lỗi đồng bộ nhân sự & phân phòng: {e}")
+                doc_names = [row[1].strip() for row in self.oncall_mgr.get_all() if row[1]]
+                self.personnel_synced.emit(doc_names, {}, silent)
+            finally:
+                self._is_syncing_personnel = False
+
+        threading.Thread(target=run, daemon=True).start()
+
+    @Slot(list, dict, bool)
+    def _on_personnel_synced(self, doc_names: list, room_assignments: dict, silent: bool):
+        self.btn_sync_personnel.setEnabled(True)
+        self.btn_sync_personnel.setText("🔄 Đồng bộ Nhân sự & Phân phòng")
+
+        if doc_names:
+            self.doctor_names = doc_names
+
+        # Gắn Bác sĩ từ lịch phân công TaskView vào các phòng tương ứng và đồng bộ lên autoq_queues
+        synced_rooms_count = 0
+        for r_id, assigned_doc in (room_assignments or {}).items():
+            if r_id in ROOM_DEFINITIONS and assigned_doc:
+                self.room_doctor_map[r_id] = assigned_doc
+                if r_id in self.all_rooms_cache:
+                    self.all_rooms_cache[r_id]["doctor_name"] = assigned_doc
+                synced_rooms_count += 1
+                threading.Thread(
+                    target=lambda r=r_id, d=assigned_doc: firestore_queue.set_room_staff(r, d),
+                    daemon=True,
+                ).start()
+
+        # Giữ cả Bác sĩ đã cấu hình tại máy trạm từng phòng trong autoq_queues
+        for r_id in ALL_ROOM_IDS:
+            q_doc = (self.all_rooms_cache.get(r_id, {}).get("doctor_name") or "").strip()
+            if q_doc and q_doc != "---" and not self.room_doctor_map.get(r_id):
+                self.room_doctor_map[r_id] = q_doc
+
+        self._refresh_room_doctor_combos_and_filter()
+        self.apply_report_filter()
+
+        if not silent:
+            active_mapped = sum(1 for r in ALL_ROOM_IDS if self.room_doctor_map.get(r))
+            QMessageBox.information(
+                self,
+                "Đồng bộ Nhân sự & Phân phòng hoàn tất",
+                f"Đã tải {len(self.doctor_names)} Bác sĩ từ Firestore.\n"
+                f"Đã tự động gắn Bác sĩ phụ trách cho {active_mapped}/{len(ALL_ROOM_IDS)} phòng!",
+            )
 
     # =========================================================================
     # POLLING & ADMIN ACTIONS (HỖ TRỢ 11 PHÒNG)
@@ -860,6 +1190,21 @@ class AdminApp(QMainWindow):
             if not card:
                 continue
 
+            # Đồng bộ Bác sĩ phụ trách được gửi lên từ máy trạm phòng khám (nếu có)
+            q_doc_name = (q_data.get("doctor_name") or "").strip()
+            if q_doc_name and q_doc_name != "---":
+                if self.room_doctor_map.get(r_str) != q_doc_name:
+                    self.room_doctor_map[r_str] = q_doc_name
+                    cbo: QComboBox = card.get("cbo_doctor")
+                    if cbo:
+                        cbo.blockSignals(True)
+                        idx = cbo.findData(q_doc_name)
+                        if idx < 0:
+                            cbo.addItem(q_doc_name, q_doc_name)
+                            idx = cbo.count() - 1
+                        cbo.setCurrentIndex(idx)
+                        cbo.blockSignals(False)
+
             curr = q_data.get("current_calling")
             missed = q_data.get("missed_list", [])
             history = q_data.get("history", [])
@@ -913,8 +1258,8 @@ class AdminApp(QMainWindow):
             r_load = room_loads.get(r_str, 0)
             pct = int(round((r_load / total_bn_cnt) * 100)) if total_bn_cnt > 0 else 0
             card["load_bar"].setValue(pct)
-            short_lbl = get_room_short_name(r_str)
-            card["load_bar"].setFormat(f"Tải lượng ({short_lbl}): {r_load} ca ({pct}%)")
+            doc_or_short = self.get_room_doctor_label(r_str)
+            card["load_bar"].setFormat(f"Tải lượng ({doc_or_short}): {r_load} ca ({pct}%)")
 
             first_case_str = extract_first_case_time_str(q_data)
             card["stats"].setText(
@@ -942,7 +1287,7 @@ class AdminApp(QMainWindow):
         patient_rows = []
         target_rooms = ALL_ROOM_IDS if selected_room_id == "ALL" else [str(selected_room_id)]
 
-        # Cập nhật bảng tổng hợp 11 phòng bên phải (kèm cột Ca đầu tiên)
+        # Cập nhật bảng tổng hợp 11 phòng bên phải (thay tên phòng bằng Bác sĩ phụ trách phòng)
         self.table_room_summary.setRowCount(len(ALL_ROOM_IDS))
         for idx, r_str in enumerate(ALL_ROOM_IDS):
             r_data = self.all_rooms_cache.get(r_str, {})
@@ -954,7 +1299,7 @@ class AdminApp(QMainWindow):
             r_avg = f"{round(sum(r_secs) / len(r_secs) / 60.0, 1)}" if r_secs else "0.0"
             first_case_t = extract_first_case_time_str(r_data)
 
-            self.table_room_summary.setItem(idx, 0, QTableWidgetItem(get_room_short_name(r_str)))
+            self.table_room_summary.setItem(idx, 0, QTableWidgetItem(self.get_room_doctor_label(r_str)))
             self.table_room_summary.setItem(idx, 1, QTableWidgetItem(first_case_t))
             self.table_room_summary.setItem(idx, 2, QTableWidgetItem(str(curr_stt)))
             self.table_room_summary.setItem(idx, 3, QTableWidgetItem(str(len(hist))))
@@ -1005,7 +1350,7 @@ class AdminApp(QMainWindow):
                 dur_min = f"{round(dur_sec / 60.0, 1)} phút" if dur_sec > 0 else "---"
 
                 patient_rows.append({
-                    "room": get_room_short_name(r_str),
+                    "room": self.get_room_doctor_label(r_str),
                     "stt": stt,
                     "status": status_str,
                     "call_cnt": f"{call_cnt} lần",
@@ -1025,51 +1370,56 @@ class AdminApp(QMainWindow):
             self.table_patients.setItem(row_idx, 6, QTableWidgetItem(p["dur_min"]))
 
     # =========================================================================
-    # EXPORT REPORTS (EXCEL/CSV & TEXT SUMMARY)
+    # EXPORT REPORTS (EXCEL .XLSX & TEXT SUMMARY)
     # =========================================================================
     def export_excel_csv(self):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Xuất Báo Cáo Excel/CSV",
-            f"Bao_Cao_Sieu_Am_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            "CSV Files (*.csv)",
+            "Xuất Báo Cáo Excel (.xlsx)",
+            f"Bao_Cao_Sieu_Am_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            "Excel Files (*.xlsx)",
         )
         if not file_path:
             return
+        if not file_path.lower().endswith(".xlsx"):
+            file_path += ".xlsx"
 
         try:
             scfg = get_seasonal_shift_config(datetime.now())
-            with open(file_path, mode="w", newline="", encoding="utf-8-sig") as f:
-                writer = csv.writer(f)
-                writer.writerow(["BÁO CÁO LƯỢNG BỆNH NHÂN VÀ THỜI GIAN THỰC HIỆN KHÁM / THĂM DÒ CHỨC NĂNG"])
-                writer.writerow([f"Ngày xuất báo cáo: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} ({scfg['season_badge']})"])
-                writer.writerow([f"Ca lọc báo cáo: {self.cbo_shift_filter.currentText()}"])
-                writer.writerow([])
-                writer.writerow(["I. TỔNG HỢP THEO PHÒNG (KÈM GIỜ BẮT ĐẦU CA BỆNH ĐẦU TIÊN TRONG NGÀY)"])
-                writer.writerow(["Phòng", "Giờ bắt đầu ca đầu tiên", "Số hiện tại", "Đã khám", "Qua lượt", "TB (phút)"])
-                for srow in range(self.table_room_summary.rowCount()):
-                    s_data = [
-                        self.table_room_summary.item(srow, scol).text() if self.table_room_summary.item(srow, scol) else ""
-                        for scol in range(6)
-                    ]
-                    writer.writerow(s_data)
-                writer.writerow([])
-                writer.writerow(["II. DANH SÁCH CHI TIẾT CÁC LƯỢT GỌI"])
-                writer.writerow([
-                    "Phòng", "Số Thứ Tự (STT)", "Trạng thái", "Số lần gọi loa",
-                    "Thời điểm gọi", "Thời điểm hoàn thành", "Thời gian khám (phút)"
-                ])
+            styled_rows: list[tuple[list, str]] = [
+                (["BÁO CÁO LƯỢNG BỆNH NHÂN VÀ THỜI GIAN THỰC HIỆN KHÁM / THĂM DÒ CHỨC NĂNG"], "title"),
+                ([f"Ngày xuất báo cáo: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} ({scfg['season_badge']})"], "meta"),
+                ([f"Ca lọc báo cáo: {self.cbo_shift_filter.currentText()}"], "meta"),
+                ([], "empty"),
+                (["I. TỔNG HỢP THEO BÁC SĨ PHỤ TRÁCH PHÒNG (KÈM GIỜ BẮT ĐẦU CA BỆNH ĐẦU TIÊN TRONG NGÀY)"], "section"),
+                (["Bác sĩ phụ trách", "Giờ bắt đầu ca đầu tiên", "Số hiện tại", "Đã khám", "Qua lượt", "TB (phút)"], "header"),
+            ]
 
-                for row in range(self.table_patients.rowCount()):
-                    r_data = [
-                        self.table_patients.item(row, col).text() if self.table_patients.item(row, col) else ""
-                        for col in range(7)
-                    ]
-                    writer.writerow(r_data)
+            for srow in range(self.table_room_summary.rowCount()):
+                s_data = [
+                    self.table_room_summary.item(srow, scol).text() if self.table_room_summary.item(srow, scol) else ""
+                    for scol in range(6)
+                ]
+                styled_rows.append((s_data, "data"))
 
-            QMessageBox.information(self, "Thành công", f"Đã xuất báo cáo thành công ra file:\n{file_path}")
+            styled_rows.append(([], "empty"))
+            styled_rows.append((["II. DANH SÁCH CHI TIẾT CÁC LƯỢT GỌI"], "section"))
+            styled_rows.append(([
+                "Bác sĩ phụ trách", "Số Thứ Tự (STT)", "Trạng thái", "Số lần gọi loa",
+                "Thời điểm gọi", "Thời điểm hoàn thành", "Thời gian khám (phút)"
+            ], "header"))
+
+            for row in range(self.table_patients.rowCount()):
+                r_data = [
+                    self.table_patients.item(row, col).text() if self.table_patients.item(row, col) else ""
+                    for col in range(7)
+                ]
+                styled_rows.append((r_data, "data"))
+
+            write_autoq_excel_xlsx(file_path, styled_rows)
+            QMessageBox.information(self, "Thành công", f"Đã xuất báo cáo Excel (.xlsx) thành công ra file:\n{file_path}")
         except Exception as e:
-            QMessageBox.critical(self, "Lỗi", f"Không thể xuất file: {e}")
+            QMessageBox.critical(self, "Lỗi", f"Không thể xuất file Excel (.xlsx): {e}")
 
     def export_text_summary_report(self):
         file_path, _ = QFileDialog.getSaveFileName(
@@ -1099,7 +1449,7 @@ class AdminApp(QMainWindow):
                 f"Số phòng đang cấp cứu:        {self.card_emergency_bn.lbl_val.text()}",
                 f"Thời gian khám trung bình/BN: {self.card_avg_time.lbl_val.text()}",
                 "-" * 82,
-                "THỐNG KÊ CHI TIẾT THEO TỪNG PHÒNG (KÈM GIỜ BẮT ĐẦU CA ĐẦU TIÊN TRONG NGÀY):",
+                "THỐNG KÊ CHI TIẾT THEO BÁC SĨ PHỤ TRÁCH PHÒNG (KÈM GIỜ BẮT ĐẦU CA ĐẦU TIÊN):",
             ]
 
             for row in range(self.table_room_summary.rowCount()):
@@ -1110,7 +1460,7 @@ class AdminApp(QMainWindow):
                 r_miss = self.table_room_summary.item(row, 4).text()
                 r_avg = self.table_room_summary.item(row, 5).text()
                 lines.append(
-                    f"  - {r_name:<16} | Ca đầu: {r_first:<8} | Hiện tại: {r_curr:<5} | Đã khám: {r_done:<4} | Qua lượt: {r_miss:<3} | TB: {r_avg}p"
+                    f"  - {r_name:<24} | Ca đầu: {r_first:<8} | Hiện tại: {r_curr:<5} | Đã khám: {r_done:<4} | Qua lượt: {r_miss:<3} | TB: {r_avg}p"
                 )
 
             lines.append("=" * 82)

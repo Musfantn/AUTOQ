@@ -166,7 +166,7 @@ class Dashboard(QWidget):
         util_row.addWidget(self.btn_toggle_tts, 1)
         util_row.addWidget(btn_mini, 1)
 
-        btn_settings = QPushButton("⚙ CẤU HÌNH PHÒNG & TRẠM LOA")
+        btn_settings = QPushButton("⚙ CẤU HÌNH PHÒNG")
         btn_settings.setStyleSheet(
             "background-color: #64748b; color: white; min-height: 35px; font-weight: bold; border-radius: 6px;"
         )
@@ -755,6 +755,13 @@ class Dashboard(QWidget):
     def on_config_saved(self):
         self.apply_config_to_tv()
         self.start_realtime_listener()
+        room_num = self.config.get("room_number", "1").strip().lower()
+        bs = self.config.get("doctor", "---").strip()
+        ktv = self.config.get("ktv", "---").strip()
+        threading.Thread(
+            target=lambda: firestore_queue.set_room_staff(room_num, bs, ktv),
+            daemon=True,
+        ).start()
 
     def apply_config_to_tv(self):
         """Đọc config và áp dụng lên TV Display + TTS Service + CentralSpeakerHub."""

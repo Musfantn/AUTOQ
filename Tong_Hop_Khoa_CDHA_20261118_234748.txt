@@ -1,0 +1,26 @@
+==================================================================================
+          BỆNH VIỆN ĐA KHOA THỊ XÃ KỲ ANH - KHOA CHẨN ĐOÁN HÌNH ẢNH
+      BÁO CÁO TỔNG HỢP LƯỢNG BỆNH NHÂN & THỜI GIAN BẮT ĐẦU CA ĐẦU TIÊN
+==================================================================================
+Thời gian xuất:               18/11/2026 23:47:52
+Chế độ lịch làm việc:         ❄️ LỊCH MÙA ĐÔNG (16/10 - 15/04)
+Ca làm việc đang chọn:        Cả ngày (Tất cả ca)
+Tổng số lượt gọi trong ngày:  0
+Số ca đã hoàn thành khám:     0
+Số ca qua lượt / chưa vào:    0
+Số phòng đang cấp cứu:        0
+Thời gian khám trung bình/BN: 0.0 phút
+----------------------------------------------------------------------------------
+THỐNG KÊ CHI TIẾT THEO BÁC SĨ PHỤ TRÁCH PHÒNG (KÈM GIỜ BẮT ĐẦU CA ĐẦU TIÊN):
+  - Phòng SA 1               | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Phòng SA 2               | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - BS. Nguyễn Thị Mỹ Hạnh   | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - BS. Nguyễn Việt Phương   | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Phòng SA 5               | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Nội Soi TMH              | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Nội Soi Tiêu Hóa         | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Điện Tâm Đồ              | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Điện Não Đồ              | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Đo Lưu Huyết Não         | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+  - Đo CN Hô Hấp             | Ca đầu: ---      | Hiện tại: 000   | Đã khám: 0    | Qua lượt: 0   | TB: 0.0p
+==================================================================================

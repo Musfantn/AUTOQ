@@ -53,6 +53,102 @@ def fetch_all_personnel() -> list[dict]:
     return result
 
 
+def fetch_doctors_and_ktvs() -> dict:
+    """Lấy đồng thời danh sách Bác sĩ (role=='doctor') và Thư ký/KTV (role in ('secretary','ktv','xray','nurse'))
+    đang active từ collection 'personnel' của Firestore trong 1 lần gọi duy nhất.
+
+    Returns:
+        {
+            "doctors": [{"id": str, "name": str, "phone": str, "specialty": str}, ...],
+            "ktvs":    [{"id": str, "name": str, "phone": str, "role": str}, ...]
+        }
+    """
+    docs = firestore_list("personnel")
+    if not docs:
+        return {"doctors": [], "ktvs": []}
+
+    doctors = []
+    ktvs = []
+    for doc in docs:
+        d = doc_to_dict(doc)
+        is_active = d.get("isActive", True)
+        if is_active is False or str(is_active).lower() == "false":
+            continue
+
+        role = str(d.get("role", "")).strip().lower()
+        name = str(d.get("name", "")).strip()
+        if not name:
+            continue
+
+        doc_id = doc_id_from_name(doc)
+        phone = str(d.get("phone", "")).strip()
+
+        if role == "doctor":
+            doctors.append({
+                "id":        doc_id,
+                "name":      name,
+                "phone":     phone,
+                "specialty": str(d.get("specialty", "")).strip(),
+            })
+        elif role in ("secretary", "ktv", "xray", "nurse"):
+            ktvs.append({
+                "id":    doc_id,
+                "name":  name,
+                "phone": phone,
+                "role":  role,
+            })
+
+    doctors.sort(key=lambda x: x["name"])
+    ktvs.sort(key=lambda x: x["name"])
+    _log(f"[FirestoreSync] Tải nhân sự Settings: {len(doctors)} BS, {len(ktvs)} KTV/TK.")
+    return {"doctors": doctors, "ktvs": ktvs}
+
+
+# Ánh xạ mã phòng trên TaskView ('room-01'..'room-05') sang mã phòng của AUTOQ ('1'..'5')
+_TASKVIEW_ROOM_MAP = {
+    "room-01": "1",
+    "room-02": "2",
+    "room-03": "3",
+    "room-04": "4",
+    "room-05": "5",
+}
+
+
+def fetch_today_room_assignments(date_str: str | None = None) -> dict[str, str]:
+    """Lấy danh sách phân công Bác sĩ theo từng phòng trong ngày hôm nay từ Firestore (TaskView).
+    Đọc collection 'assignments' với điều kiện date == today_str và personnelRole == 'doctor'.
+
+    Returns:
+        dict ánh xạ mã phòng AUTOQ ('1'..'5', ...) -> Tên Bác sĩ phụ trách (VD: {'1': 'BS. Nguyễn Văn An'})
+    """
+    target_date = date_str or datetime.date.today().strftime("%Y-%m-%d")
+    docs = firestore_list("assignments", page_size=300)
+    if not docs:
+        return {}
+
+    room_to_doctors: dict[str, list[str]] = {}
+    for raw_doc in docs:
+        d = doc_to_dict(raw_doc)
+        if str(d.get("personnelRole", "")).strip().lower() != "doctor":
+            continue
+        if str(d.get("date", "")).strip() != target_date:
+            continue
+
+        raw_room_id = str(d.get("roomId", "")).strip().lower()
+        doc_name = str(d.get("personnelName", "")).strip()
+        if not raw_room_id or not doc_name:
+            continue
+
+        autoq_room_id = _TASKVIEW_ROOM_MAP.get(raw_room_id, raw_room_id.replace("room-", ""))
+        room_to_doctors.setdefault(autoq_room_id, [])
+        if doc_name not in room_to_doctors[autoq_room_id]:
+            room_to_doctors[autoq_room_id].append(doc_name)
+
+    result = {r_id: ", ".join(names) for r_id, names in room_to_doctors.items() if names}
+    _log(f"[FirestoreSync] Đồng bộ phân buồng ngày {target_date}: {len(result)} phòng có BS.")
+    return result
+
+
 def fetch_today_oncall_from_roster() -> dict | None:
     """Lấy bác sĩ trực hôm nay từ LỊCH TRỰC THÁNG (monthly roster).
     Đọc document 'assignments/roster_YYYY-MM', tra bảng dutySchedule theo ngày,

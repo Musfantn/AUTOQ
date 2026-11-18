@@ -58,6 +58,8 @@ def _ensure_schema(data: dict, room_num) -> dict:
     data.setdefault("waiting_list", [])
     data.setdefault("history", [])
     data.setdefault("is_duty_mode", False)
+    data.setdefault("doctor_name", "")
+    data.setdefault("ktv_name", "")
     if not isinstance(data.get("missed_list"), list):
         data["missed_list"] = []
     if not isinstance(data.get("history"), list):
@@ -319,9 +321,27 @@ def set_duty_mode(room_num, is_duty: bool, doctor_name: str = "", doctor_phone: 
     return queue_data
 
 
+def set_room_staff(room_num, doctor_name: str, ktv_name: str | None = None) -> dict:
+    """Cập nhật tên Bác sĩ phụ trách (và KTV) của phòng lên Firestore để đồng bộ với Admin."""
+    queue_data = get_room_queue(room_num)
+    doc_clean = (doctor_name or "").strip()
+    if doc_clean == "---":
+        doc_clean = ""
+    queue_data["doctor_name"] = doc_clean
+    if ktv_name is not None:
+        ktv_clean = (ktv_name or "").strip()
+        queue_data["ktv_name"] = "" if ktv_clean == "---" else ktv_clean
+    save_room_queue(room_num, queue_data)
+    return queue_data
+
+
 def reset_queue(room_num) -> dict:
-    """Reset toàn bộ dữ liệu gọi số của phòng chỉ định về 0."""
+    """Reset toàn bộ dữ liệu gọi số của phòng chỉ định về 0 (giữ nguyên Bác sĩ phụ trách phòng)."""
+    prev = _load_local_cache(room_num) or {}
     queue_data = _new_queue(room_num)
+    if prev.get("date") == queue_data["date"]:
+        queue_data["doctor_name"] = prev.get("doctor_name", "")
+        queue_data["ktv_name"] = prev.get("ktv_name", "")
     save_room_queue(room_num, queue_data)
     return queue_data
 
@@ -439,6 +459,8 @@ def _new_queue(room_num, date_str: str | None = None) -> dict:
         "is_duty_mode": False,
         "duty_doctor": "",
         "duty_phone": "",
+        "doctor_name": "",
+        "ktv_name": "",
         "date": date_str or datetime.now().strftime("%Y-%m-%d"),
     }
 

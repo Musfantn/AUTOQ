@@ -43,6 +43,7 @@ from admin_app import (
     is_winter_season,
     get_seasonal_shift_config,
     extract_first_case_time_str,
+    write_autoq_excel_xlsx,
     AdminApp,
     AdminLoginDialog,
 )
@@ -383,6 +384,19 @@ class Test07_SQLiteConcurrencyAndGUIComponents(unittest.TestCase):
         self.assertEqual(sw.room_number.count(), 11)
         self.assertFalse(sw.room_number.view().window().testAttribute(Qt.WA_TranslucentBackground))
         self.assertFalse(sw.cbo_speaker_mode.view().window().testAttribute(Qt.WA_TranslucentBackground))
+        self.assertFalse(sw.doctor.view().window().testAttribute(Qt.WA_TranslucentBackground))
+        self.assertFalse(sw.ktv.view().window().testAttribute(Qt.WA_TranslucentBackground))
+
+        # Kiểm thử tính năng tự viết thêm KTV phụ máy vào dropdown KTV
+        orig_custom_ktvs = sw._get_custom_ktv_list()
+        try:
+            test_ktv_name = "KTV. Nguyễn Thị Phụ Máy Test"
+            self.assertTrue(sw.add_custom_ktv_name(test_ktv_name))
+            self.assertEqual(sw.ktv.text(), test_ktv_name)
+            self.assertIn(test_ktv_name, sw._get_custom_ktv_list())
+        finally:
+            sw._save_custom_ktv_list(orig_custom_ktvs)
+            sw._populate_ktv_dropdown()
 
         from duty_mode_dialog import DutyModeDialog
         duty_dlg = DutyModeDialog(OnCallManager())
@@ -391,6 +405,35 @@ class Test07_SQLiteConcurrencyAndGUIComponents(unittest.TestCase):
 
         admin = AdminApp()
         self.assertEqual(len(admin.room_cards), 11)
+        # Kiểm thử gắn Bác sĩ phụ trách vào phòng và thay thế tên phòng bằng tên Bác sĩ trong thống kê/báo cáo
+        admin.room_doctor_map["1"] = "BS. Nguyễn Việt Phương"
+        admin.apply_report_filter()
+        self.assertEqual(admin.get_room_doctor_label("1"), "BS. Nguyễn Việt Phương")
+        self.assertEqual(admin.table_room_summary.item(0, 0).text(), "BS. Nguyễn Việt Phương")
+
+        # Kiểm thử xuất file Excel (.xlsx) chuẩn OOXML
+        import tempfile
+        import zipfile
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tf:
+            tmp_xlsx = tf.name
+        try:
+            write_autoq_excel_xlsx(tmp_xlsx, [
+                (["BÁO CÁO THỐNG KÊ"], "title"),
+                (["Bác sĩ phụ trách", "Đã khám"], "header"),
+                (["BS. Nguyễn Việt Phương", "15"], "data"),
+            ])
+            self.assertTrue(os.path.exists(tmp_xlsx))
+            self.assertGreater(os.path.getsize(tmp_xlsx), 500)
+            with zipfile.ZipFile(tmp_xlsx, "r") as zf:
+                names = zf.namelist()
+                self.assertIn("xl/workbook.xml", names)
+                self.assertIn("xl/worksheets/sheet1.xml", names)
+                sheet_xml = zf.read("xl/worksheets/sheet1.xml").decode("utf-8")
+                self.assertIn("BS. Nguyễn Việt Phương", sheet_xml)
+        finally:
+            if os.path.exists(tmp_xlsx):
+                os.remove(tmp_xlsx)
+
         admin.close()
         sw.close()
         tv.close()

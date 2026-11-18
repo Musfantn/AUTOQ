@@ -174,10 +174,6 @@ class DutyModeDialog(QDialog):
             }
         """)
         self.combo.setView(list_view)
-        popup = self.combo.view().window()
-        popup.setAttribute(Qt.WA_TranslucentBackground, False)
-        popup.setStyleSheet("background-color: #ffffff; color: #0f172a;")
-
         self.combo.setStyleSheet("""
             QComboBox {
                 font-size: 15px;
@@ -213,6 +209,9 @@ class DutyModeDialog(QDialog):
                 color: #ffffff;
             }
         """)
+        popup = self.combo.view().window()
+        popup.setStyleSheet("background-color: #ffffff; color: #0f172a;")
+        popup.setAttribute(Qt.WA_TranslucentBackground, False)
         self.combo.currentIndexChanged.connect(self._on_combo_changed)
         card_layout.addWidget(self.combo)
 
@@ -280,6 +279,7 @@ class DutyModeDialog(QDialog):
         root.addLayout(btn_row)
 
         self.adjustSize()
+        self.combo.view().window().setAttribute(Qt.WA_TranslucentBackground, False)
 
     # ─── Fetch ────────────────────────────────────────────────────────────────
 
@@ -337,6 +337,7 @@ class DutyModeDialog(QDialog):
             self.no_data_label.setVisible(True)
 
         self.adjustSize()
+        self.combo.view().window().setAttribute(Qt.WA_TranslucentBackground, False)
 
     # ─── Sự kiện ──────────────────────────────────────────────────────────────
 

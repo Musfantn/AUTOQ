@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton,
-    QInputDialog, QDialog, QScrollArea, QMessageBox
+    QInputDialog, QDialog, QScrollArea, QMessageBox, QApplication
 )
 from PySide6.QtCore import Qt, Signal, QTimer
 from datetime import datetime
@@ -13,6 +13,8 @@ from oncall_manager import OnCallManager
 from oncall_setup_window import OnCallSetupWindow
 from duty_mode_dialog import DutyModeDialog
 from tts_service import TTSService
+from chat_service import ChatService
+from chat_window import ChatWindow, ChatToastPopup
 from speaker_hub import (
     CentralSpeakerHub,
     broadcast_speaker_event,
@@ -69,7 +71,7 @@ class Dashboard(QWidget):
         self._cmd_lock = threading.Lock()
 
         self.setWindowTitle("Bảng Điều Khiển Gọi Số Phòng Siêu Âm - BVĐK Kỳ Anh")
-        self.setMinimumSize(760, 740)
+        self.setMinimumSize(860, 740)
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(15, 15, 15, 15)
@@ -171,6 +173,11 @@ class Dashboard(QWidget):
             "background-color: #64748b; color: white; min-height: 35px; font-weight: bold; border-radius: 6px;"
         )
 
+        self.btn_chat = QPushButton("💬 CHAT NỘI BỘ GIỮA CÁC PHÒNG")
+        self.btn_chat.setStyleSheet(
+            "background-color: #7c3aed; color: white; min-height: 36px; font-weight: bold; border-radius: 6px;"
+        )
+
         btn_oncall_setup = QPushButton("👨‍⚕️ THIẾT LẬP DANH SÁCH BS TRỰC")
         btn_oncall_setup.setStyleSheet(
             "background-color: #64748b; color: white; min-height: 35px; font-weight: bold; border-radius: 6px;"
@@ -193,6 +200,7 @@ class Dashboard(QWidget):
         self.btn_toggle_tts.clicked.connect(self.toggle_tts_mute)
         btn_mini.clicked.connect(self.show_mini)
         btn_settings.clicked.connect(self.show_settings)
+        self.btn_chat.clicked.connect(self.show_chat_window)
         btn_oncall_setup.clicked.connect(self.show_oncall_setup)
         self.btn_duty_mode.clicked.connect(self.toggle_duty_mode)
         btn_reset.clicked.connect(self.reset)
@@ -206,6 +214,7 @@ class Dashboard(QWidget):
         left_layout.addWidget(btn_set)
         left_layout.addWidget(self.btn_priority)
         left_layout.addLayout(util_row)
+        left_layout.addWidget(self.btn_chat)
         left_layout.addWidget(btn_settings)
 
         separator = QFrame()
@@ -219,10 +228,10 @@ class Dashboard(QWidget):
         left_layout.addWidget(btn_reset)
 
         # =====================================================================
-        # CỘT PHẢI: DANH SÁCH CHƯA VÀO PHÒNG & LỊCH SỬ GỌI LẠI NHANH (370px)
+        # CỘT PHẢI: DANH SÁCH CHƯA VÀO PHÒNG & LỊCH SỬ GỌI LẠI NHANH (455px+)
         # =====================================================================
         right_frame = QFrame()
-        right_frame.setMinimumWidth(360)
+        right_frame.setMinimumWidth(455)
         right_frame.setStyleSheet("background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px;")
         right_layout = QVBoxLayout(right_frame)
         right_layout.setContentsMargins(12, 12, 12, 12)
@@ -266,8 +275,8 @@ class Dashboard(QWidget):
         self.history_list_layout.setAlignment(Qt.AlignTop)
         right_layout.addWidget(self.history_container, 1)
 
-        main_layout.addWidget(left_widget, 1)
-        main_layout.addWidget(right_frame, 1)
+        main_layout.addWidget(left_widget, 4)
+        main_layout.addWidget(right_frame, 5)
 
         # Khởi tạo cửa sổ phụ
         self.settings_window = SettingsWindow()
@@ -275,6 +284,17 @@ class Dashboard(QWidget):
         self.settings_window.test_tts_requested.connect(self.test_tts_voice)
         self.oncall_setup_window = OnCallSetupWindow()
         self.mini = MiniPanel(self)
+
+        # Khởi tạo Dịch vụ & Cửa sổ Chat Nhanh Nội Bộ (Hybrid LAN UDP + Firestore)
+        init_room = self.config.get("room_number", "1").strip().lower()
+        init_doc = self.config.get("doctor", "---").strip()
+        self.chat_service = ChatService(local_room_id=init_room, local_doctor_name=init_doc, parent=self)
+        self.chat_window = ChatWindow(self.chat_service)
+        self.chat_toast = ChatToastPopup()
+        self.chat_toast.reply_requested.connect(self.open_chat_reply_to)
+        self.chat_service.unread_count_changed.connect(self._on_chat_unread_changed)
+        self.chat_service.message_received.connect(self._on_chat_message_received)
+        self.chat_service.start()
 
         # Kết nối Custom Signals
         self.queue_updated.connect(self.on_queue_updated)
@@ -780,6 +800,8 @@ class Dashboard(QWidget):
         self.lbl_room_header.setText(f"{room.upper()} (Mã phòng: {room_num.upper()})")
         self.tv.update_room(room)
         self.tv.update_staff(bs, ktv)
+        if hasattr(self, "chat_service"):
+            self.chat_service.set_identity(room_num, bs)
         if footer:
             self.tv.update_footer_text(footer)
 
@@ -821,6 +843,40 @@ class Dashboard(QWidget):
                 "font-size: 12px; font-weight: bold; color: #475569; background: #f1f5f9; "
                 "border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px;"
             )
+
+    # ─── CHAT NHANH NỘI BỘ GIỮA CÁC PHÒNG ───────────────────────────────────
+
+    def show_chat_window(self):
+        self.chat_window.show()
+        self.chat_window.raise_()
+        self.chat_window.activateWindow()
+
+    def open_chat_reply_to(self, target_room_id: str):
+        self.show_chat_window()
+        self.chat_window.select_target_room(target_room_id)
+
+    def _on_chat_unread_changed(self, unread_count: int):
+        if unread_count > 0:
+            self.btn_chat.setText(f"💬 CHAT NỘI BỘ ({unread_count} TIN MỚI 🔴)")
+            self.btn_chat.setStyleSheet(
+                "background-color: #dc2626; color: white; min-height: 36px; font-weight: bold; border-radius: 6px;"
+            )
+        else:
+            self.btn_chat.setText("💬 CHAT NỘI BỘ GIỮA CÁC PHÒNG")
+            self.btn_chat.setStyleSheet(
+                "background-color: #7c3aed; color: white; min-height: 36px; font-weight: bold; border-radius: 6px;"
+            )
+        if hasattr(self, "mini"):
+            self.mini.update_chat_badge(unread_count)
+
+    def _on_chat_message_received(self, msg: dict, is_incoming: bool):
+        if is_incoming and not self.chat_window.isVisible():
+            self.chat_toast.show_message_toast(msg)
+            if self.config.get("chat_sound_enabled", "1") != "0":
+                try:
+                    QApplication.beep()
+                except Exception:
+                    pass
 
     # ─── CHẾ ĐỘ PHÒNG TRỰC ──────────────────────────────────────────────────
 
@@ -870,9 +926,11 @@ class Dashboard(QWidget):
     def closeEvent(self, event):
         self.stop_realtime_listener()
         self.speaker_hub.stop_hub()
+        if hasattr(self, "chat_service"):
+            self.chat_service.stop()
         if hasattr(self, "heartbeat_timer"):
             self.heartbeat_timer.stop()
-        for child_win in ("mini", "settings_window", "oncall_setup_window", "tv"):
+        for child_win in ("mini", "settings_window", "oncall_setup_window", "chat_window", "chat_toast", "tv"):
             w = getattr(self, child_win, None)
             if w is not None:
                 try:

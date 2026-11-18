@@ -41,6 +41,7 @@ class MiniPanel(QWidget):
         self.btn_next = QPushButton("▶ TIẾP THEO")
         self.btn_recall = QPushButton("🔊 GỌI LẠI")
         self.btn_skip = QPushButton("⏭ CHƯA VÀO")
+        self.btn_chat = QPushButton("💬 CHAT")
         self.btn_dash = QPushButton("PHÓNG TO")
 
         self.btn_next.setStyleSheet(
@@ -56,6 +57,11 @@ class MiniPanel(QWidget):
             "QPushButton:hover { background: #0369a1; }"
         )
         self.btn_skip.setToolTip("Bệnh nhân chưa vào phòng: Lưu vào danh sách chờ gọi lại và gọi số tiếp theo")
+        self.btn_chat.setStyleSheet(
+            "QPushButton { background: #7c3aed; color: white; font-weight: bold; border-radius: 5px; padding: 6px 8px; border: none; }"
+            "QPushButton:hover { background: #6d28d9; }"
+        )
+        self.btn_chat.setToolTip("Mở cửa sổ Chat Nhanh Nội Bộ giữa các phòng")
         self.btn_dash.setStyleSheet(
             "QPushButton { background: #6c757d; color: white; font-weight: bold; border-radius: 5px; padding: 6px 8px; border: none; }"
             "QPushButton:hover { background: #5a6268; }"
@@ -65,6 +71,7 @@ class MiniPanel(QWidget):
         self.btn_next.clicked.connect(self.dashboard.next)
         self.btn_recall.clicked.connect(self.dashboard.recall_current)
         self.btn_skip.clicked.connect(self.dashboard.skip_and_next)
+        self.btn_chat.clicked.connect(self.dashboard.show_chat_window)
         self.btn_dash.clicked.connect(self.restore)
 
         layout.addWidget(self.duty_indicator)
@@ -72,6 +79,7 @@ class MiniPanel(QWidget):
         layout.addWidget(self.btn_next)
         layout.addWidget(self.btn_recall)
         layout.addWidget(self.btn_skip)
+        layout.addWidget(self.btn_chat)
         layout.addWidget(self.btn_dash)
         layout.addStretch()
 
@@ -81,7 +89,7 @@ class MiniPanel(QWidget):
         self.time_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(self.time_label)
 
-        self.setFixedSize(580, 52)
+        self.setFixedSize(640, 52)
         self.load_last_position()
 
         # ===== clock timer =====
@@ -140,6 +148,21 @@ class MiniPanel(QWidget):
             self.number.setText(current_number)
             self.number.setStyleSheet("font-size: 22px; font-weight: bold; color: #FFD700; border: none;")
             self.number.repaint()
+
+    def update_chat_badge(self, unread_count: int):
+        """Cập nhật badge tin nhắn chưa đọc trên nút Chat của MiniPanel."""
+        if unread_count > 0:
+            self.btn_chat.setText(f"💬 ({unread_count})")
+            self.btn_chat.setStyleSheet(
+                "QPushButton { background: #dc2626; color: white; font-weight: bold; border-radius: 5px; padding: 6px 8px; border: 1px solid #fef08a; }"
+                "QPushButton:hover { background: #b91c1c; }"
+            )
+        else:
+            self.btn_chat.setText("💬 CHAT")
+            self.btn_chat.setStyleSheet(
+                "QPushButton { background: #7c3aed; color: white; font-weight: bold; border-radius: 5px; padding: 6px 8px; border: none; }"
+                "QPushButton:hover { background: #6d28d9; }"
+            )
 
     def restore(self):
         self.dashboard.show()

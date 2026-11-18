@@ -20,6 +20,8 @@ import firestore_queue
 from firestore_client import firestore_list, doc_to_dict, doc_id_from_name
 from firestore_sync import fetch_all_personnel, fetch_today_room_assignments
 from oncall_manager import OnCallManager
+from chat_service import ChatService
+from chat_window import ChatWindow, ChatToastPopup
 from speaker_hub import (
     ALL_ROOM_IDS,
     ROOM_DEFINITIONS,
@@ -590,6 +592,15 @@ class AdminApp(QMainWindow):
         )
         self.btn_sync_personnel.clicked.connect(lambda: self.sync_personnel_and_assignments_async(silent=False))
 
+        self.btn_admin_chat = QPushButton("💬 Chat Điều Phối (11 Phòng)")
+        self.btn_admin_chat.setToolTip("Mở cửa sổ Chat Nhanh Nội Bộ với tất cả 11 phòng khám")
+        self.btn_admin_chat.setStyleSheet(
+            "QPushButton { background-color: #7c3aed; color: #ffffff; font-size: 12px; "
+            "font-weight: bold; padding: 6px 12px; border-radius: 6px; }"
+            "QPushButton:hover { background-color: #6d28d9; }"
+        )
+        self.btn_admin_chat.clicked.connect(lambda: self.open_admin_chat("ALL"))
+
         self.lbl_season_badge = QLabel("")
         self.lbl_season_badge.setStyleSheet(
             "font-size: 12px; font-weight: bold; color: #fbbf24; background: #1e293b; "
@@ -607,6 +618,7 @@ class AdminApp(QMainWindow):
         self.lbl_clock.setStyleSheet("color: #10b981;")
 
         header_box.addWidget(lbl_title, 1)
+        header_box.addWidget(self.btn_admin_chat)
         header_box.addWidget(self.btn_sync_personnel)
         header_box.addWidget(self.lbl_season_badge)
         header_box.addWidget(self.btn_change_pwd)
@@ -630,6 +642,15 @@ class AdminApp(QMainWindow):
         self.rooms_data_updated.connect(self.on_rooms_data_updated)
         self.personnel_synced.connect(self._on_personnel_synced)
 
+        # Khởi tạo Dịch vụ & Cửa sổ Chat Điều Phối Nội Bộ cho Admin
+        self.chat_service = ChatService(local_room_id="admin", local_doctor_name="Trung tâm Admin", parent=self)
+        self.chat_window = ChatWindow(self.chat_service)
+        self.chat_toast = ChatToastPopup()
+        self.chat_toast.reply_requested.connect(self.open_admin_chat)
+        self.chat_service.unread_count_changed.connect(self._on_admin_chat_unread_changed)
+        self.chat_service.message_received.connect(self._on_admin_chat_message_received)
+        self.chat_service.start()
+
         self.timer_clock = QTimer(self)
         self.timer_clock.timeout.connect(self._update_clock)
         self.timer_clock.start(1000)
@@ -651,6 +672,37 @@ class AdminApp(QMainWindow):
     def open_change_password_dialog(self):
         dlg = AdminChangePasswordDialog(self)
         dlg.exec()
+
+    def open_admin_chat(self, target_room_id: str = "ALL"):
+        self.chat_window.show()
+        self.chat_window.raise_()
+        self.chat_window.activateWindow()
+        if target_room_id:
+            self.chat_window.select_target_room(target_room_id)
+
+    def _on_admin_chat_unread_changed(self, unread_count: int):
+        if unread_count > 0:
+            self.btn_admin_chat.setText(f"💬 Chat Điều Phối ({unread_count} tin mới 🔴)")
+            self.btn_admin_chat.setStyleSheet(
+                "QPushButton { background-color: #dc2626; color: #ffffff; font-size: 12px; "
+                "font-weight: bold; padding: 6px 12px; border-radius: 6px; }"
+                "QPushButton:hover { background-color: #b91c1c; }"
+            )
+        else:
+            self.btn_admin_chat.setText("💬 Chat Điều Phối (11 Phòng)")
+            self.btn_admin_chat.setStyleSheet(
+                "QPushButton { background-color: #7c3aed; color: #ffffff; font-size: 12px; "
+                "font-weight: bold; padding: 6px 12px; border-radius: 6px; }"
+                "QPushButton:hover { background-color: #6d28d9; }"
+            )
+
+    def _on_admin_chat_message_received(self, msg: dict, is_incoming: bool):
+        if is_incoming and not self.chat_window.isVisible():
+            self.chat_toast.show_message_toast(msg)
+            try:
+                QApplication.beep()
+            except Exception:
+                pass
 
     # =========================================================================
     # TAB 1: GIÁM SÁT LƯỢNG BỆNH NHÂN REALTIME 5 PHÒNG SIÊU ÂM
@@ -807,11 +859,17 @@ class AdminApp(QMainWindow):
         btn_set_room.setStyleSheet("background: #2563eb; padding: 5px 10px; font-size: 12px;")
         btn_set_room.clicked.connect(lambda checked=False, r=room_id: self.admin_set_room_number(r))
 
-        btn_reset_room = QPushButton("🔄 Reset phòng")
+        btn_chat_room = QPushButton("💬 Nhắn")
+        btn_chat_room.setToolTip("Mở cửa sổ Chat Nhanh gửi trực tiếp tới phòng này")
+        btn_chat_room.setStyleSheet("background: #7c3aed; padding: 5px 10px; font-size: 12px;")
+        btn_chat_room.clicked.connect(lambda checked=False, r=room_id: self.open_admin_chat(r))
+
+        btn_reset_room = QPushButton("🔄 Reset")
         btn_reset_room.setStyleSheet("background: #475569; padding: 5px 10px; font-size: 12px;")
         btn_reset_room.clicked.connect(lambda checked=False, r=room_id: self.admin_reset_room(r))
 
         ctrl_row.addWidget(btn_set_room)
+        ctrl_row.addWidget(btn_chat_room)
         ctrl_row.addWidget(btn_reset_room)
         f_layout.addLayout(ctrl_row)
 
@@ -1477,6 +1535,15 @@ class AdminApp(QMainWindow):
             self.timer_clock.stop()
         if hasattr(self, "timer_poll"):
             self.timer_poll.stop()
+        if hasattr(self, "chat_service"):
+            self.chat_service.stop()
+        for child_w in ("chat_window", "chat_toast"):
+            w = getattr(self, child_w, None)
+            if w is not None:
+                try:
+                    w.close()
+                except Exception:
+                    pass
         super().closeEvent(event)
 
 

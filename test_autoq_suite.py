@@ -50,6 +50,8 @@ from admin_app import (
 from tv_display import TVDisplay
 from settings import SettingsWindow
 from dashboard import Dashboard
+from chat_service import ChatService, is_message_relevant_for_room
+from chat_window import ChatWindow, ChatToastPopup
 
 
 # Khởi tạo QApplication dùng chung cho toàn bộ test suite
@@ -463,6 +465,55 @@ class Test07_SQLiteConcurrencyAndGUIComponents(unittest.TestCase):
         self.assertEqual(tv.number.text(), "003")
 
         dash.close()
+
+
+class Test08_InterRoomChatServiceAndWindow(unittest.TestCase):
+    """Kiểm thử tính năng Chat Nhanh Nội Bộ giữa các phòng (Deduplication, Lọc phòng nhận, Unread Badge, GUI)."""
+
+    def test_chat_relevance_deduplication_and_unread_badge(self):
+        chat_r2 = ChatService(local_room_id="2", local_doctor_name="BS. Lê Văn Linh")
+        chat_r3 = ChatService(local_room_id="3", local_doctor_name="BS. Nguyễn Thị Mỹ Hạnh")
+        chat_admin = ChatService(local_room_id="admin", local_doctor_name="Admin")
+
+        # 1. Phòng 1 gửi tin nhắn riêng cho Phòng 2
+        chat_r1 = ChatService(local_room_id="1", local_doctor_name="BS. Nguyễn Việt Phương")
+        msg_1_to_2 = chat_r1.build_message("Nhờ Phòng 2 nhận giúp 3 ca siêu âm bụng!", target_room="2", is_urgent=True)
+
+        self.assertTrue(is_message_relevant_for_room(msg_1_to_2, "1"))
+        self.assertTrue(is_message_relevant_for_room(msg_1_to_2, "2"))
+        self.assertTrue(is_message_relevant_for_room(msg_1_to_2, "admin"))
+        self.assertFalse(is_message_relevant_for_room(msg_1_to_2, "3"))
+
+        # 2. Phòng 2 nhận tin lần 1 (qua UDP) -> unread_count tăng lên 1
+        self.assertTrue(chat_r2._ingest_message(msg_1_to_2, is_realtime_event=True))
+        self.assertEqual(chat_r2.get_unread_count(), 1)
+        self.assertEqual(len(chat_r2.get_visible_messages()), 1)
+
+        # 3. Phòng 2 nhận lại cùng tin đó lần 2 (qua Firestore sync) -> Bộ lọc chống lặp chặn lại
+        self.assertFalse(chat_r2._ingest_message(msg_1_to_2, is_realtime_event=True))
+        self.assertEqual(chat_r2.get_unread_count(), 1, "Không được tăng unread khi trùng msg_id!")
+
+        # 4. Phòng 3 nhận gói tin này nhưng không phải gửi cho Phòng 3 -> Không tăng unread, không hiển thị
+        chat_r3._ingest_message(msg_1_to_2, is_realtime_event=True)
+        self.assertEqual(chat_r3.get_unread_count(), 0)
+        self.assertEqual(len(chat_r3.get_visible_messages()), 0)
+
+        # 5. Admin nhận mọi tin nhắn điều phối giữa các phòng
+        chat_admin._ingest_message(msg_1_to_2, is_realtime_event=True)
+        self.assertEqual(chat_admin.get_unread_count(), 1)
+        self.assertEqual(len(chat_admin.get_visible_messages()), 1)
+
+        # 6. Khi Phòng 2 mở cửa sổ ChatWindow -> unread_count tự động reset về 0
+        win = ChatWindow(chat_r2)
+        self.assertFalse(win.cbo_target.view().window().testAttribute(Qt.WA_TranslucentBackground))
+        chat_r2.set_chat_window_open(True)
+        self.assertEqual(chat_r2.get_unread_count(), 0)
+
+        toast = ChatToastPopup()
+        toast.show_message_toast(msg_1_to_2)
+        self.assertIn("Nhờ Phòng 2", toast.lbl_content.text())
+        toast.close()
+        win.close()
 
 
 if __name__ == "__main__":

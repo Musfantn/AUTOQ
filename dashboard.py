@@ -15,6 +15,8 @@ from duty_mode_dialog import DutyModeDialog
 from tts_service import TTSService
 from chat_service import ChatService
 from chat_window import ChatWindow, ChatToastPopup
+from version import APP_VERSION
+from updater import UpdateCheckWorker, UpdateDialog
 from speaker_hub import (
     CentralSpeakerHub,
     broadcast_speaker_event,
@@ -70,8 +72,8 @@ class Dashboard(QWidget):
         self.speaker_mode = SPEAKER_MODE_CLIENT
         self._cmd_lock = threading.Lock()
 
-        self.setWindowTitle("Bảng Điều Khiển Gọi Số Phòng Siêu Âm - BVĐK Kỳ Anh")
-        self.setMinimumSize(860, 740)
+        self.setWindowTitle(f"Bảng Điều Khiển Gọi Số Phòng Khám - BVĐK Kỳ Anh (v{APP_VERSION})")
+        self.setMinimumSize(860, 750)
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(15, 15, 15, 15)
@@ -100,6 +102,16 @@ class Dashboard(QWidget):
             "font-size: 12px; font-weight: bold; color: #0f766e; background: #ccfbf1; "
             "border: 1px solid #5eead4; border-radius: 6px; padding: 5px;"
         )
+
+        # Nút thông báo có bản cập nhật mới (Chỉ tự động hiện ra khi phát hiện phiên bản mới trên Server)
+        self.btn_update_banner = QPushButton("⬆️ ĐÃ CÓ BẢN CẬP NHẬT MỚI — BẤM ĐỂ CẬP NHẬT")
+        self.btn_update_banner.setVisible(False)
+        self.btn_update_banner.setStyleSheet(
+            "QPushButton { background-color: #ea580c; color: white; font-size: 13px; "
+            "font-weight: bold; padding: 7px 10px; border-radius: 6px; border: 1px solid #fed7aa; }"
+            "QPushButton:hover { background-color: #c2410c; }"
+        )
+        self.btn_update_banner.clicked.connect(self.open_update_dialog)
 
         # Hiển thị số thứ tự hiện tại
         self.number = QLabel("000")
@@ -207,6 +219,7 @@ class Dashboard(QWidget):
 
         left_layout.addWidget(self.lbl_room_header)
         left_layout.addWidget(self.lbl_hub_banner)
+        left_layout.addWidget(self.btn_update_banner)
         left_layout.addWidget(self.number)
         left_layout.addWidget(self.lbl_call_meta)
         left_layout.addWidget(self.btn_next)
@@ -311,6 +324,11 @@ class Dashboard(QWidget):
         self.heartbeat_timer = QTimer(self)
         self.heartbeat_timer.timeout.connect(self.poll_queue_once)
         self.heartbeat_timer.start(30000)
+
+        # Tự động kiểm tra bản cập nhật mới sau khi mở app 4 giây (không chặn UI)
+        self._latest_update_meta = None
+        self._update_check_worker = None
+        QTimer.singleShot(4000, self._check_update_silently)
 
     # ─── REALTIME LISTENER & CLOUD COMMANDS ──────────────────────────────────
 
@@ -878,6 +896,30 @@ class Dashboard(QWidget):
                 except Exception:
                     pass
 
+    # ─── TỰ ĐỘNG KIỂM TRA & CẬP NHẬT PHẦN MỀM ────────────────────────────────
+
+    def _check_update_silently(self):
+        if not self.isVisible() and not (hasattr(self, "mini") and self.mini.isVisible()):
+            return
+        if self._update_check_worker and self._update_check_worker.isRunning():
+            return
+        self._update_check_worker = UpdateCheckWorker()
+        self._update_check_worker.checked.connect(self._on_silent_update_checked)
+        self._update_check_worker.start()
+
+    def _on_silent_update_checked(self, meta: dict, has_new: bool):
+        self._latest_update_meta = meta
+        if has_new:
+            ver = meta.get("latest_version", "")
+            self.btn_update_banner.setText(f"⬆️ ĐÃ CÓ BẢN CẬP NHẬT MỚI (v{ver}) — BẤM ĐỂ CẬP NHẬT")
+            self.btn_update_banner.setVisible(True)
+            if meta.get("is_mandatory") and self.isVisible():
+                self.open_update_dialog()
+
+    def open_update_dialog(self):
+        dlg = UpdateDialog(initial_meta=self._latest_update_meta, parent=self)
+        dlg.exec()
+
     # ─── CHẾ ĐỘ PHÒNG TRỰC ──────────────────────────────────────────────────
 
     def show_oncall_setup(self):
@@ -928,6 +970,8 @@ class Dashboard(QWidget):
         self.speaker_hub.stop_hub()
         if hasattr(self, "chat_service"):
             self.chat_service.stop()
+        if hasattr(self, "_update_check_worker") and self._update_check_worker and self._update_check_worker.isRunning():
+            self._update_check_worker.wait(1000)
         if hasattr(self, "heartbeat_timer"):
             self.heartbeat_timer.stop()
         for child_win in ("mini", "settings_window", "oncall_setup_window", "chat_window", "chat_toast", "tv"):

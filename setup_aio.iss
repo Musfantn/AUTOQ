@@ -7,7 +7,7 @@
 ; ============================================================
 
 #define MyAppName      "AUTOQ - Hệ Thống Gọi Số Khoa CĐHA & TDCN"
-#define MyAppVersion   "7.0"
+#define MyAppVersion   "7.1.0"
 #define MyAppPublisher "Khoa Chẩn Đoán Hình Ảnh - BVĐK Thị Xã Kỳ Anh"
 #define MySourceDir    "dist"
 
@@ -34,6 +34,7 @@ LZMAUseSeparateProcess=yes
 PrivilegesRequired=admin
 AllowNoIcons=yes
 RestartIfNeededByRun=no
+CloseApplications=force
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

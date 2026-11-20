@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QThread
 from config_manager import ConfigManager
 from oncall_manager import OnCallManager
+from version import APP_VERSION
+from updater import UpdateDialog
 from speaker_hub import (
     SPEAKER_MODE_HUB,
     SPEAKER_MODE_CLIENT,
@@ -255,6 +257,25 @@ class SettingsWindow(QWidget):
         vol_row.addWidget(self.lbl_volume_val)
         vol_row.addWidget(self.btn_test_tts)
 
+        # 7. Phiên bản & Kiểm tra cập nhật phần mềm tự động
+        update_row = QHBoxLayout()
+        update_row.setSpacing(10)
+        self.lbl_version_info = QLabel(f"Phiên bản hiện tại: v{APP_VERSION}")
+        self.lbl_version_info.setStyleSheet("font-size: 13px; font-weight: bold; color: #0369a1;")
+
+        self.btn_check_update = QPushButton("🔄 Kiểm tra cập nhật")
+        self.btn_check_update.setToolTip("Kiểm tra và tự động tải phiên bản mới nhất từ GitHub Releases & Firestore")
+        self.btn_check_update.setStyleSheet(
+            "QPushButton { background-color: #0f766e; color: white; font-size: 13px; "
+            "font-weight: bold; padding: 7px 14px; border-radius: 6px; border: none; }"
+            "QPushButton:hover { background-color: #115e59; }"
+        )
+        self.btn_check_update.clicked.connect(self.open_update_dialog)
+
+        update_row.addWidget(self.lbl_version_info)
+        update_row.addStretch()
+        update_row.addWidget(self.btn_check_update)
+
         label_style = "font-size: 14px; font-weight: bold; color: #0f172a;"
         l_rnum = QLabel("Chọn Phòng Khám:")
         l_rnum.setStyleSheet(label_style)
@@ -272,6 +293,8 @@ class SettingsWindow(QWidget):
         l_tts.setStyleSheet(label_style)
         l_vol = QLabel("Âm lượng loa:")
         l_vol.setStyleSheet(label_style)
+        l_upd = QLabel("Cập nhật App:")
+        l_upd.setStyleSheet(label_style)
 
         form_layout.addRow(l_rnum, self.room_number)
         form_layout.addRow(l_room, self.room)
@@ -281,6 +304,7 @@ class SettingsWindow(QWidget):
         form_layout.addRow(l_mode, self.cbo_speaker_mode)
         form_layout.addRow(l_tts, self.chk_tts_enabled)
         form_layout.addRow(l_vol, vol_row)
+        form_layout.addRow(l_upd, update_row)
 
         layout.addLayout(form_layout)
         layout.addStretch()
@@ -585,6 +609,10 @@ class SettingsWindow(QWidget):
         self.config_saved.emit()
         self.close()
         self.hide()
+
+    def open_update_dialog(self):
+        dlg = UpdateDialog(parent=self)
+        dlg.exec()
 
     def showEvent(self, event):
         """Mỗi khi mở cửa sổ Settings, tự động đồng bộ ngầm danh sách Bác sĩ & KTV từ Firestore."""

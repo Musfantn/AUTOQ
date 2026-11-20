@@ -22,6 +22,8 @@ from firestore_sync import fetch_all_personnel, fetch_today_room_assignments
 from oncall_manager import OnCallManager
 from chat_service import ChatService
 from chat_window import ChatWindow, ChatToastPopup
+from version import APP_VERSION
+from updater import UpdateCheckWorker, UpdateDialog, AdminPublishUpdateDialog
 from speaker_hub import (
     ALL_ROOM_IDS,
     ROOM_DEFINITIONS,
@@ -451,7 +453,7 @@ class AdminApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(
-            "AUTOQ ADMIN CENTER - KIỂM SOÁT LƯỢNG BỆNH NHÂN & BÁO CÁO (11 PHÒNG SIÊU ÂM, NỘI SOI & THĂM DÒ CHỨC NĂNG)"
+            f"AUTOQ ADMIN CENTER v{APP_VERSION} - KIỂM SOÁT LƯỢNG BỆNH NHÂN & BÁO CÁO (11 PHÒNG)"
         )
         self.resize(1280, 860)
 
@@ -613,6 +615,22 @@ class AdminApp(QMainWindow):
         )
         self.btn_change_pwd.clicked.connect(self.open_change_password_dialog)
 
+        self.btn_check_update = QPushButton(f"⬆️ Cập nhật (v{APP_VERSION})")
+        self.btn_check_update.setToolTip("Kiểm tra và tự động cập nhật phần mềm từ GitHub Releases & Firestore")
+        self.btn_check_update.setStyleSheet(
+            "QPushButton { background-color: #0f766e; color: #f8fafc; font-size: 12px; padding: 6px 12px; border-radius: 6px; }"
+            "QPushButton:hover { background-color: #115e59; }"
+        )
+        self.btn_check_update.clicked.connect(self.open_admin_update_dialog)
+
+        self.btn_publish_update = QPushButton("🚀 Phát hành bản mới")
+        self.btn_publish_update.setToolTip("Đẩy thông báo bản cập nhật mới lên Cloud Firestore cho toàn bộ 11 phòng")
+        self.btn_publish_update.setStyleSheet(
+            "QPushButton { background-color: #0284c7; color: #f8fafc; font-size: 12px; padding: 6px 12px; border-radius: 6px; }"
+            "QPushButton:hover { background-color: #0369a1; }"
+        )
+        self.btn_publish_update.clicked.connect(self.open_publish_update_dialog)
+
         self.lbl_clock = QLabel("")
         self.lbl_clock.setFont(QFont("Consolas", 12, QFont.Bold))
         self.lbl_clock.setStyleSheet("color: #10b981;")
@@ -621,6 +639,8 @@ class AdminApp(QMainWindow):
         header_box.addWidget(self.btn_admin_chat)
         header_box.addWidget(self.btn_sync_personnel)
         header_box.addWidget(self.lbl_season_badge)
+        header_box.addWidget(self.btn_check_update)
+        header_box.addWidget(self.btn_publish_update)
         header_box.addWidget(self.btn_change_pwd)
         header_box.addWidget(self.lbl_clock)
         main_layout.addLayout(header_box)
@@ -662,6 +682,10 @@ class AdminApp(QMainWindow):
         QTimer.singleShot(100, self.poll_all_rooms_async)
         QTimer.singleShot(250, lambda: self.sync_personnel_and_assignments_async(silent=True))
 
+        self._latest_update_meta = None
+        self._update_check_worker = None
+        QTimer.singleShot(4500, self._check_update_silently)
+
     def _update_clock(self):
         now = datetime.now()
         now_str = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -671,6 +695,34 @@ class AdminApp(QMainWindow):
 
     def open_change_password_dialog(self):
         dlg = AdminChangePasswordDialog(self)
+        dlg.exec()
+
+    def _check_update_silently(self):
+        if not self.isVisible():
+            return
+        if self._update_check_worker and self._update_check_worker.isRunning():
+            return
+        self._update_check_worker = UpdateCheckWorker()
+        self._update_check_worker.checked.connect(self._on_silent_update_checked)
+        self._update_check_worker.start()
+
+    def _on_silent_update_checked(self, meta: dict, has_new: bool):
+        self._latest_update_meta = meta
+        if has_new:
+            ver = meta.get("latest_version", "")
+            self.btn_check_update.setText(f"⬆️ Có bản mới v{ver}!")
+            self.btn_check_update.setStyleSheet(
+                "QPushButton { background-color: #ea580c; color: #ffffff; font-size: 12px; "
+                "font-weight: bold; padding: 6px 12px; border-radius: 6px; }"
+                "QPushButton:hover { background-color: #c2410c; }"
+            )
+
+    def open_admin_update_dialog(self):
+        dlg = UpdateDialog(initial_meta=self._latest_update_meta, parent=self)
+        dlg.exec()
+
+    def open_publish_update_dialog(self):
+        dlg = AdminPublishUpdateDialog(self)
         dlg.exec()
 
     def open_admin_chat(self, target_room_id: str = "ALL"):
@@ -1537,6 +1589,8 @@ class AdminApp(QMainWindow):
             self.timer_poll.stop()
         if hasattr(self, "chat_service"):
             self.chat_service.stop()
+        if hasattr(self, "_update_check_worker") and self._update_check_worker and self._update_check_worker.isRunning():
+            self._update_check_worker.wait(1000)
         for child_w in ("chat_window", "chat_toast"):
             w = getattr(self, child_w, None)
             if w is not None:

@@ -7,7 +7,7 @@
 ; ============================================================
 
 #define MyAppName      "AUTOQ - Hệ Thống Gọi Số Khoa CĐHA & TDCN"
-#define MyAppVersion   "7.0"
+#define MyAppVersion   "7.1.0"
 #define MyAppPublisher "Bs Nguyễn Việt Phương - BVĐK Thị Xã Kỳ Anh"
 #define MyAppExeName   "RadiologyQueue.exe"
 #define MyAdminExeName "AdminQueue.exe"
@@ -36,6 +36,7 @@ LZMAUseSeparateProcess=yes
 PrivilegesRequired=admin
 AllowNoIcons=yes
 RestartIfNeededByRun=no
+CloseApplications=force
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

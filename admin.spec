@@ -18,6 +18,8 @@ a = Analysis(
         'oncall_manager',
         'chat_service',
         'chat_window',
+        'version',
+        'updater',
         'zipfile',
         'xml.sax.saxutils',
         'sqlite3',

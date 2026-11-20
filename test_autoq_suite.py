@@ -52,6 +52,8 @@ from settings import SettingsWindow
 from dashboard import Dashboard
 from chat_service import ChatService, is_message_relevant_for_room
 from chat_window import ChatWindow, ChatToastPopup
+from version import APP_VERSION, parse_semver, is_newer_version
+from updater import compute_file_sha256, UpdateDialog, AdminPublishUpdateDialog
 
 
 # Khởi tạo QApplication dùng chung cho toàn bộ test suite
@@ -514,6 +516,42 @@ class Test08_InterRoomChatServiceAndWindow(unittest.TestCase):
         self.assertIn("Nhờ Phòng 2", toast.lbl_content.text())
         toast.close()
         win.close()
+
+
+class Test09_AutoUpdateAndVersionCheck(unittest.TestCase):
+    """Kiểm thử tính năng So sánh phiên bản SemVer, tính mã SHA-256 và hộp thoại Check/Auto Update."""
+
+    def test_semver_comparison_and_sha256(self):
+        self.assertEqual(parse_semver("v7.1.0"), (7, 1, 0))
+        self.assertEqual(parse_semver("7.2"), (7, 2, 0))
+        self.assertTrue(is_newer_version("7.2.0", "7.1.0"))
+        self.assertTrue(is_newer_version("v7.1.1", "7.1.0"))
+        self.assertFalse(is_newer_version("7.1.0", "7.1.0"))
+        self.assertFalse(is_newer_version("6.9.9", "7.1.0"))
+
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as tf:
+            tf.write(b"AUTOQ_TEST_INSTALLER_PAYLOAD")
+            tmp_path = tf.name
+        try:
+            sha = compute_file_sha256(tmp_path)
+            self.assertEqual(len(sha), 64)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_update_dialogs_initialization(self):
+        sample_meta = {
+            "latest_version": "7.2.0",
+            "release_date": "2026-11-20",
+            "download_url": "https://github.com/Musfantn/AUTOQ/releases/download/v7.2.0/AUTOQ_Setup_v7.2.0.exe",
+            "file_size_mb": 98.6,
+            "changelog": "- Bản cập nhật thử nghiệm v7.2.0",
+        }
+        dlg = UpdateDialog(initial_meta=sample_meta)
+        self.assertTrue(dlg.btn_install.isEnabled())
+        self.assertIn("7.2.0", dlg.lbl_latest_ver.text())
+        dlg.close()
 
 
 if __name__ == "__main__":

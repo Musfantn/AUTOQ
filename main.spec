@@ -31,6 +31,8 @@ a = Analysis(
         'dashboard',
         'chat_service',
         'chat_window',
+        'version',
+        'updater',
         'sqlite3',
         'urllib.request',
         'urllib.parse',

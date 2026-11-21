@@ -20,6 +20,7 @@ a = Analysis(
         'chat_window',
         'version',
         'updater',
+        'user_guide_dialog',
         'zipfile',
         'xml.sax.saxutils',
         'sqlite3',

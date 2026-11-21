@@ -24,6 +24,7 @@ from chat_service import ChatService
 from chat_window import ChatWindow, ChatToastPopup
 from version import APP_VERSION
 from updater import UpdateCheckWorker, UpdateDialog, AdminPublishUpdateDialog
+from user_guide_dialog import UserGuideDialog
 from speaker_hub import (
     ALL_ROOM_IDS,
     ROOM_DEFINITIONS,
@@ -615,6 +616,14 @@ class AdminApp(QMainWindow):
         )
         self.btn_change_pwd.clicked.connect(self.open_change_password_dialog)
 
+        self.btn_admin_guide = QPushButton("📖 Hướng dẫn")
+        self.btn_admin_guide.setToolTip("Xem cẩm nang hướng dẫn sử dụng nhanh toàn bộ tính năng AUTOQ")
+        self.btn_admin_guide.setStyleSheet(
+            "QPushButton { background-color: #334155; color: #38bdf8; font-size: 12px; font-weight: bold; padding: 6px 12px; border-radius: 6px; }"
+            "QPushButton:hover { background-color: #475569; color: #ffffff; }"
+        )
+        self.btn_admin_guide.clicked.connect(self.open_admin_user_guide)
+
         self.btn_check_update = QPushButton(f"⬆️ Cập nhật (v{APP_VERSION})")
         self.btn_check_update.setToolTip("Kiểm tra và tự động cập nhật phần mềm từ GitHub Releases & Firestore")
         self.btn_check_update.setStyleSheet(
@@ -641,6 +650,7 @@ class AdminApp(QMainWindow):
         header_box.addWidget(self.lbl_season_badge)
         header_box.addWidget(self.btn_check_update)
         header_box.addWidget(self.btn_publish_update)
+        header_box.addWidget(self.btn_admin_guide)
         header_box.addWidget(self.btn_change_pwd)
         header_box.addWidget(self.lbl_clock)
         main_layout.addLayout(header_box)
@@ -695,6 +705,10 @@ class AdminApp(QMainWindow):
 
     def open_change_password_dialog(self):
         dlg = AdminChangePasswordDialog(self)
+        dlg.exec()
+
+    def open_admin_user_guide(self):
+        dlg = UserGuideDialog(parent=self)
         dlg.exec()
 
     def _check_update_silently(self):

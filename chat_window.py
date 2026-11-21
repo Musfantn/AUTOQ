@@ -9,9 +9,9 @@ import json
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QComboBox, QLineEdit, QCheckBox, QScrollArea, QFrame,
-    QListView, QInputDialog, QApplication
+    QListView, QInputDialog, QApplication, QMenu
 )
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal, QPoint
 
 from config_manager import ConfigManager
 from speaker_hub import ALL_ROOM_IDS, ROOM_DEFINITIONS
@@ -297,68 +297,39 @@ class ChatWindow(QWidget):
 
         root.addWidget(header_frame)
 
-        # ── 2. KHỐI TIN NHẮN MẪU 1 CHẠM (QUICK CLINICAL TEMPLATES) ──
-        tpl_frame = QFrame()
-        tpl_frame.setStyleSheet(
-            "QFrame { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; }"
-        )
-        tpl_layout = QVBoxLayout(tpl_frame)
-        tpl_layout.setContentsMargins(12, 8, 12, 10)
-        tpl_layout.setSpacing(6)
-
-        tpl_head_row = QHBoxLayout()
-        lbl_tpl_title = QLabel("⚡ TIN NHẮN NHANH 1 CHẠM (BẤM ĐỂ GỬI NGAY):")
-        lbl_tpl_title.setStyleSheet("font-size: 12px; font-weight: bold; color: #0B5FA5; border: none;")
-
-        btn_add_tpl = QPushButton("➕ Thêm mẫu câu")
-        btn_add_tpl.setStyleSheet(
-            "QPushButton { background: #0284c7; color: white; font-size: 11px; "
-            "font-weight: bold; padding: 4px 10px; border-radius: 5px; border: none; }"
-            "QPushButton:hover { background: #0369a1; }"
-        )
-        btn_add_tpl.clicked.connect(self._prompt_add_template)
-
-        tpl_head_row.addWidget(lbl_tpl_title, 1)
-        tpl_head_row.addWidget(btn_add_tpl)
-        tpl_layout.addLayout(tpl_head_row)
-
-        self.tpl_buttons_container = QWidget()
-        self.tpl_buttons_container.setStyleSheet("background: transparent; border: none;")
-        self.tpl_buttons_layout = QVBoxLayout(self.tpl_buttons_container)
-        self.tpl_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        self.tpl_buttons_layout.setSpacing(4)
-        tpl_layout.addWidget(self.tpl_buttons_container)
-
-        root.addWidget(tpl_frame)
-
-        # ── 3. KHUNG LỊCH SỬ TIN NHẮN TRONG NGÀY ──
-        lbl_hist = QLabel("💬 NỘI DUNG TRAO ĐỔI TRONG NGÀY:")
-        lbl_hist.setStyleSheet("font-size: 12px; font-weight: bold; color: #475569;")
-        root.addWidget(lbl_hist)
-
+        # ── 2. KHUNG LỊCH SỬ TIN NHẮN TRONG NGÀY (ƯU TIÊN DIỆN TÍCH TỐI ĐA) ──
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet(
-            "QScrollArea { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; }"
+            "QScrollArea { background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; }"
         )
         self.msg_container = QWidget()
         self.msg_container.setStyleSheet("background: #ffffff; border: none;")
         self.msg_layout = QVBoxLayout(self.msg_container)
-        self.msg_layout.setContentsMargins(10, 10, 10, 10)
+        self.msg_layout.setContentsMargins(12, 12, 12, 12)
         self.msg_layout.setSpacing(8)
         self.msg_layout.setAlignment(Qt.AlignTop)
         self.scroll_area.setWidget(self.msg_container)
         root.addWidget(self.scroll_area, 1)
 
-        # ── 4. Ô NHẬP TIN NHẮN TỰ DO ──
+        # ── 3. THANH NHẬP TIN NHẮN & NÚT SỔ MENU MẪU TIN NHẮN NHANH ──
         input_row = QHBoxLayout()
         input_row.setSpacing(8)
+
+        self.btn_quick_menu = QPushButton("⚡ Mẫu tin nhắn nhanh ▾")
+        self.btn_quick_menu.setToolTip("Bấm để mở danh sách mẫu tin nhắn nhanh (Gửi 1 chạm hoặc thêm/xóa mẫu câu)")
+        self.btn_quick_menu.setStyleSheet(
+            "QPushButton { background: #0284c7; color: white; font-size: 13px; "
+            "font-weight: bold; padding: 10px 14px; border-radius: 8px; border: none; }"
+            "QPushButton:hover { background-color: #0369a1; }"
+        )
+        self.btn_quick_menu.clicked.connect(self._show_quick_templates_menu)
 
         self.txt_input = QLineEdit()
         self.txt_input.setPlaceholderText("Nhập nội dung tin nhắn trao đổi giữa các phòng (Nhấn Enter để gửi)...")
         self.txt_input.returnPressed.connect(self._send_text_input)
 
-        self.btn_send = QPushButton("📤 GỬI TIN NHẮN")
+        self.btn_send = QPushButton("📤 GỬI TIN")
         self.btn_send.setStyleSheet(
             "QPushButton { background: #16a34a; color: white; font-size: 14px; "
             "font-weight: bold; padding: 10px 18px; border-radius: 8px; border: none; }"
@@ -366,12 +337,12 @@ class ChatWindow(QWidget):
         )
         self.btn_send.clicked.connect(self._send_text_input)
 
+        input_row.addWidget(self.btn_quick_menu)
         input_row.addWidget(self.txt_input, 1)
         input_row.addWidget(self.btn_send)
         root.addLayout(input_row)
 
         _setup_opaque_combo(self.cbo_target)
-        self._rebuild_template_buttons()
         self.refresh_identity_banner()
 
         # Kết nối tín hiệu từ ChatService
@@ -423,7 +394,7 @@ class ChatWindow(QWidget):
             self.cbo_target.setCurrentIndex(idx)
         self.txt_input.setFocus()
 
-    # ─── QUẢN LÝ TIN NHẮN MẪU 1 CHẠM ─────────────────────────────────────────
+    # ─── MENU SỔ RA CHO TIN NHẮN MẪU 1 CHẠM ──────────────────────────────────
 
     def _get_custom_templates(self) -> list[str]:
         raw = self.config.get("custom_chat_templates", "[]")
@@ -438,57 +409,73 @@ class ChatWindow(QWidget):
     def _save_custom_templates(self, templates: list[str]) -> None:
         self.config.set("custom_chat_templates", json.dumps(templates, ensure_ascii=False))
 
-    def _rebuild_template_buttons(self):
-        while self.tpl_buttons_layout.count():
-            item = self.tpl_buttons_layout.takeAt(0)
-            w = item.widget()
-            if w:
-                w.deleteLater()
-            elif item.layout():
-                sub = item.layout()
-                while sub.count():
-                    si = sub.takeAt(0)
-                    if si.widget():
-                        si.widget().deleteLater()
+    def _build_quick_templates_menu(self) -> QMenu:
+        """Khởi tạo QMenu nền đặc tương phản cao chứa toàn bộ tin nhắn mẫu nhanh."""
+        menu_style = """
+            QMenu {
+                background-color: #ffffff;
+                color: #0f172a;
+                border: 2px solid #0B5FA5;
+                border-radius: 8px;
+                padding: 6px;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 13px;
+                font-weight: bold;
+            }
+            QMenu::item {
+                background-color: #ffffff;
+                color: #0f172a;
+                padding: 8px 16px;
+                border-radius: 5px;
+                margin: 2px 0px;
+            }
+            QMenu::item:selected {
+                background-color: #0B5FA5;
+                color: #ffffff;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #cbd5e1;
+                margin: 6px 4px;
+            }
+        """
+        menu = QMenu(self)
+        menu.setStyleSheet(menu_style)
+        menu.setAttribute(Qt.WA_TranslucentBackground, False)
 
         custom_tpls = self._get_custom_templates()
-        all_tpls = [(t, False) for t in DEFAULT_QUICK_TEMPLATES] + [(t, True) for t in custom_tpls]
+        all_tpls = list(DEFAULT_QUICK_TEMPLATES) + list(custom_tpls)
 
-        # Hiển thị 2 nút mẫu trên mỗi hàng cho gọn gàng
-        row_layout = None
-        for idx, (tpl_text, is_custom) in enumerate(all_tpls):
-            if idx % 2 == 0:
-                row_layout = QHBoxLayout()
-                row_layout.setSpacing(6)
-                self.tpl_buttons_layout.addLayout(row_layout)
+        for tpl_text in all_tpls:
+            act = menu.addAction(tpl_text)
+            act.triggered.connect(lambda checked=False, txt=tpl_text: self._send_quick_template(txt))
 
-            btn_cell = QHBoxLayout()
-            btn_cell.setSpacing(2)
+        menu.addSeparator()
 
-            btn = QPushButton(tpl_text)
-            btn.setStyleSheet(
-                "QPushButton { background: #f1f5f9; color: #0f172a; font-size: 12px; font-weight: bold; "
-                "padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; text-align: left; }"
-                "QPushButton:hover { background: #e0f2fe; border-color: #0284c7; color: #0369a1; }"
-            )
-            btn.clicked.connect(lambda checked=False, txt=tpl_text: self._send_quick_template(txt))
-            btn_cell.addWidget(btn, 1)
+        act_add = menu.addAction("➕ Thêm mẫu tin nhắn nhanh mới...")
+        act_add.triggered.connect(self._prompt_add_template)
 
-            if is_custom:
-                btn_del = QPushButton("✕")
-                btn_del.setFixedWidth(24)
-                btn_del.setToolTip("Xóa mẫu câu tự thêm này")
-                btn_del.setStyleSheet(
-                    "QPushButton { background: #fee2e2; color: #dc2626; font-size: 11px; "
-                    "font-weight: bold; padding: 4px; border-radius: 5px; border: none; }"
-                    "QPushButton:hover { background: #fca5a5; }"
-                )
-                btn_del.clicked.connect(lambda checked=False, txt=tpl_text: self._remove_custom_template(txt))
-                btn_cell.addWidget(btn_del)
+        if custom_tpls:
+            del_menu = QMenu("🗑 Xóa mẫu tin tự thêm", menu)
+            del_menu.setStyleSheet(menu_style)
+            del_menu.setAttribute(Qt.WA_TranslucentBackground, False)
+            for c_txt in custom_tpls:
+                del_act = del_menu.addAction(f"✕  {c_txt}")
+                del_act.triggered.connect(lambda checked=False, txt=c_txt: self._remove_custom_template(txt))
+            menu.addMenu(del_menu)
 
-            cell_widget = QWidget()
-            cell_widget.setLayout(btn_cell)
-            row_layout.addWidget(cell_widget, 1)
+        return menu
+
+    def _show_quick_templates_menu(self):
+        """Hiển thị menu mẫu tin nhắn nhanh sổ ra ngay tại nút '⚡ Mẫu tin nhắn nhanh ▾'."""
+        menu = self._build_quick_templates_menu()
+        menu_hint = menu.sizeHint()
+        btn_global = self.btn_quick_menu.mapToGlobal(QPoint(0, 0))
+        # Ưu tiên sổ lên phía trên nút nếu nút nằm ở đáy cửa sổ
+        popup_y = btn_global.y() - menu_hint.height() - 4
+        if popup_y < 20:
+            popup_y = btn_global.y() + self.btn_quick_menu.height() + 4
+        menu.exec(QPoint(btn_global.x(), popup_y))
 
     def _prompt_add_template(self):
         text, ok = QInputDialog.getText(
@@ -504,12 +491,10 @@ class ChatWindow(QWidget):
             if new_t not in custom:
                 custom.append(new_t)
                 self._save_custom_templates(custom)
-                self._rebuild_template_buttons()
 
     def _remove_custom_template(self, tpl_text: str):
         custom = [t for t in self._get_custom_templates() if t != tpl_text]
         self._save_custom_templates(custom)
-        self._rebuild_template_buttons()
 
     def _send_quick_template(self, tpl_text: str):
         target_r = self.cbo_target.currentData() or "ALL"

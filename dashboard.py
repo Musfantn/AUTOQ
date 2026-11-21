@@ -17,6 +17,7 @@ from chat_service import ChatService
 from chat_window import ChatWindow, ChatToastPopup
 from version import APP_VERSION
 from updater import UpdateCheckWorker, UpdateDialog
+from user_guide_dialog import UserGuideDialog
 from speaker_hub import (
     CentralSpeakerHub,
     broadcast_speaker_event,
@@ -185,6 +186,17 @@ class Dashboard(QWidget):
             "background-color: #64748b; color: white; min-height: 35px; font-weight: bold; border-radius: 6px;"
         )
 
+        btn_guide = QPushButton("📖 HƯỚNG DẪN")
+        btn_guide.setToolTip("Xem cẩm nang hướng dẫn sử dụng nhanh các tính năng của phần mềm")
+        btn_guide.setStyleSheet(
+            "background-color: #0284c7; color: white; min-height: 35px; font-weight: bold; border-radius: 6px;"
+        )
+
+        cfg_guide_row = QHBoxLayout()
+        cfg_guide_row.setSpacing(8)
+        cfg_guide_row.addWidget(btn_settings, 3)
+        cfg_guide_row.addWidget(btn_guide, 2)
+
         self.btn_chat = QPushButton("💬 CHAT NỘI BỘ GIỮA CÁC PHÒNG")
         self.btn_chat.setStyleSheet(
             "background-color: #7c3aed; color: white; min-height: 36px; font-weight: bold; border-radius: 6px;"
@@ -212,6 +224,7 @@ class Dashboard(QWidget):
         self.btn_toggle_tts.clicked.connect(self.toggle_tts_mute)
         btn_mini.clicked.connect(self.show_mini)
         btn_settings.clicked.connect(self.show_settings)
+        btn_guide.clicked.connect(self.show_user_guide)
         self.btn_chat.clicked.connect(self.show_chat_window)
         btn_oncall_setup.clicked.connect(self.show_oncall_setup)
         self.btn_duty_mode.clicked.connect(self.toggle_duty_mode)
@@ -228,7 +241,7 @@ class Dashboard(QWidget):
         left_layout.addWidget(self.btn_priority)
         left_layout.addLayout(util_row)
         left_layout.addWidget(self.btn_chat)
-        left_layout.addWidget(btn_settings)
+        left_layout.addLayout(cfg_guide_row)
 
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
@@ -789,6 +802,10 @@ class Dashboard(QWidget):
         self.settings_window.load_config_to_ui()
         self.settings_window.show()
         self.settings_window.raise_()
+
+    def show_user_guide(self):
+        dlg = UserGuideDialog(parent=self)
+        dlg.exec()
 
     def on_config_saved(self):
         self.apply_config_to_tv()

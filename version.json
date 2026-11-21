@@ -1,10 +1,10 @@
 {
-  "latest_version": "7.1.0",
-  "release_date": "2026-11-20",
-  "download_url": "https://github.com/Musfantn/AUTOQ/releases/download/v7.1.0/AUTOQ_Setup_v7.1.0.exe",
-  "fallback_url": "https://github.com/Musfantn/AUTOQ/releases/download/v7.1.0/AUTOQ_Setup_v7.1.0.exe",
-  "sha256": "32d7c3b7290d5adb316c28404031a3e7264bb0e76f78143fde069677cd9bed62",
-  "file_size_mb": 98.6,
+  "latest_version": "7.2.0",
+  "release_date": "2026-11-21",
+  "download_url": "https://github.com/Musfantn/AUTOQ/releases/download/v7.2.0/AUTOQ_Setup_v7.2.0.exe",
+  "fallback_url": "https://github.com/Musfantn/AUTOQ/releases/download/v7.2.0/AUTOQ_Setup_v7.2.0.exe",
+  "sha256": "d40490351a57829f79754f3965ab2e144b9f2ebd2d5fcfa9f4c5508336237bea",
+  "file_size_mb": 98.4,
   "is_mandatory": false,
-  "changelog": "- Bổ sung tính năng Kiểm tra cập nhật & Tự động cập nhật phần mềm (Auto-Update)\n- Tính năng Chat Nhanh Nội Bộ giữa 11 phòng khám & Admin (Hybrid LAN UDP + Firestore)\n- Đồng bộ Bác sĩ phụ trách từng phòng & Xuất báo cáo Excel (.xlsx) chuẩn OOXML\n- Menu Dropdown chọn Bác sĩ & KTV phụ máy trong Cấu hình phòng"
+  "changelog": "- Thay nhạc hiệu chuông mở đầu dingdong.wav mới\n- Chuẩn hóa TTS: chỉ đọc số/tên phòng chuẩn (không đọc hậu tố chuyên khoa phía sau)\n- Nâng cấp cửa sổ Chat Nội Bộ: ưu tiên diện tích khung hội thoại, gom tin nhắn nhanh vào menu sổ ra\n- Tích hợp Cẩm nang Hướng dẫn sử dụng nhanh trực tiếp trong ứng dụng"
 }

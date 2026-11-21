@@ -6,8 +6,8 @@
 
 import re
 
-APP_VERSION = "7.1.0"
-APP_RELEASE_DATE = "2026-11-20"
+APP_VERSION = "7.2.0"
+APP_RELEASE_DATE = "2026-11-21"
 GITHUB_REPO = "Musfantn/AUTOQ"
 
 # Kênh 1 (Ưu tiên cao nhất - Không giới hạn Rate Limit cho 11 phòng chung IP WAN):

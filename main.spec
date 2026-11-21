@@ -33,6 +33,7 @@ a = Analysis(
         'chat_window',
         'version',
         'updater',
+        'user_guide_dialog',
         'sqlite3',
         'urllib.request',
         'urllib.parse',

@@ -121,13 +121,23 @@ ROOM_SPEECH_MAP: dict[str, tuple[str, str]] = {
 
 
 def normalize_room_speech(room_name: str, room_number: str = "1") -> str:
-    """Chuẩn hóa tên phòng để câu đọc tự nhiên (VD: 'phòng siêu âm 1',
-    'phòng nội soi tai mũi họng', 'phòng điện tâm đồ', ...).
+    """Chuẩn hóa câu đọc tên phòng: chỉ đọc số/tên phòng chuẩn (VD: 'phòng siêu âm 4'),
+    bỏ qua toàn bộ phần hậu tố mô tả chuyên khoa phía sau trên màn hình TV
+    (VD: 'PHÒNG SIÊU ÂM 4 TIM - MẠCH' -> chỉ đọc 'phòng siêu âm 4').
     """
-    r_id = str(room_number or "1").strip().lower()
+    r_id = str(room_number or "").strip().lower()
     raw = (room_name or "").strip().lower()
 
-    # Mở rộng các từ viết tắt phổ biến để giọng TTS đọc tròn vành rõ chữ
+    # 1. Nếu tên phòng có dạng "phòng siêu âm <số> ..." -> Cắt bỏ mọi hậu tố phía sau số phòng
+    m_sa = re.search(r"siêu\s*âm\s*0*(\d+)", raw)
+    if m_sa:
+        return f"phòng siêu âm {int(m_sa.group(1))}"
+
+    # 2. Nếu mã phòng (room_number) nằm trong danh mục 11 phòng chuẩn -> Luôn lấy câu đọc chuẩn của mã phòng đó
+    if r_id in ROOM_SPEECH_MAP:
+        return ROOM_SPEECH_MAP[r_id][0]
+
+    # 3. Fallback khi không truyền mã phòng rõ ràng nhưng tên có chứa từ khóa phòng chức năng
     raw = re.sub(r"\btmh\b", "tai mũi họng", raw)
     raw = re.sub(r"\bnsth\b", "nội soi tiêu hóa", raw)
     raw = re.sub(r"\bđtđ\b", "điện tâm đồ", raw)
@@ -135,10 +145,17 @@ def normalize_room_speech(room_name: str, room_number: str = "1") -> str:
     raw = re.sub(r"\blhn\b", "lưu huyết não", raw)
     raw = re.sub(r"\bcnhh\b", "chức năng hô hấp", raw)
 
+    for canonical_spoken, _mp3 in ROOM_SPEECH_MAP.values():
+        key_phrase = canonical_spoken.replace("phòng ", "")
+        if key_phrase in raw:
+            return canonical_spoken
+
     if not raw or raw == "---":
-        if r_id in ROOM_SPEECH_MAP:
-            return ROOM_SPEECH_MAP[r_id][0]
-        return f"phòng siêu âm {r_id}"
+        return f"phòng siêu âm {r_id or '1'}"
+
+    m_num = re.search(r"phòng\s*0*(\d+)", raw)
+    if m_num:
+        return f"phòng siêu âm {int(m_num.group(1))}"
 
     raw = re.sub(r"\b0+(\d+)\b", r"\1", raw)
     return raw

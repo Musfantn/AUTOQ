@@ -54,6 +54,7 @@ from chat_service import ChatService, is_message_relevant_for_room
 from chat_window import ChatWindow, ChatToastPopup
 from version import APP_VERSION, parse_semver, is_newer_version
 from updater import compute_file_sha256, UpdateDialog, AdminPublishUpdateDialog
+from user_guide_dialog import UserGuideDialog
 
 
 # Khởi tạo QApplication dùng chung cho toàn bộ test suite
@@ -118,6 +119,9 @@ class Test02_VietnameseTTSAndOfflineVoicePack(unittest.TestCase):
 
     def test_normalize_room_speech_all_11_rooms(self):
         self.assertEqual(normalize_room_speech("PHÒNG SIÊU ÂM 2", "2"), "phòng siêu âm 2")
+        self.assertEqual(normalize_room_speech("phòng siêu âm 4 tim -mạch", "4"), "phòng siêu âm 4")
+        self.assertEqual(normalize_room_speech("PHÒNG SIÊU ÂM 4 TIM - MẠCH"), "phòng siêu âm 4")
+        self.assertEqual(normalize_room_speech("PHÒNG SIÊU ÂM 3 SẢN PHỤ KHOA", "3"), "phòng siêu âm 3")
         self.assertEqual(normalize_room_speech("PHÒNG NỘI SOI TMH", "tmh"), "phòng nội soi tai mũi họng")
         self.assertEqual(normalize_room_speech("PHÒNG NSTH", "nsth"), "phòng nội soi tiêu hóa")
         self.assertEqual(normalize_room_speech("PHÒNG ĐTĐ", "dtd"), "phòng điện tâm đồ")
@@ -508,6 +512,8 @@ class Test08_InterRoomChatServiceAndWindow(unittest.TestCase):
         # 6. Khi Phòng 2 mở cửa sổ ChatWindow -> unread_count tự động reset về 0
         win = ChatWindow(chat_r2)
         self.assertFalse(win.cbo_target.view().window().testAttribute(Qt.WA_TranslucentBackground))
+        quick_menu = win._build_quick_templates_menu()
+        self.assertGreaterEqual(len(quick_menu.actions()), 6)
         chat_r2.set_chat_window_open(True)
         self.assertEqual(chat_r2.get_unread_count(), 0)
 
@@ -542,16 +548,20 @@ class Test09_AutoUpdateAndVersionCheck(unittest.TestCase):
 
     def test_update_dialogs_initialization(self):
         sample_meta = {
-            "latest_version": "7.2.0",
-            "release_date": "2026-11-20",
-            "download_url": "https://github.com/Musfantn/AUTOQ/releases/download/v7.2.0/AUTOQ_Setup_v7.2.0.exe",
+            "latest_version": "99.0.0",
+            "release_date": "2026-11-21",
+            "download_url": "https://github.com/Musfantn/AUTOQ/releases/download/v99.0.0/AUTOQ_Setup_v99.0.0.exe",
             "file_size_mb": 98.6,
-            "changelog": "- Bản cập nhật thử nghiệm v7.2.0",
+            "changelog": "- Bản cập nhật thử nghiệm v99.0.0",
         }
         dlg = UpdateDialog(initial_meta=sample_meta)
         self.assertTrue(dlg.btn_install.isEnabled())
-        self.assertIn("7.2.0", dlg.lbl_latest_ver.text())
+        self.assertIn("99.0.0", dlg.lbl_latest_ver.text())
         dlg.close()
+
+        guide = UserGuideDialog()
+        self.assertEqual(guide.tabs.count(), 4)
+        guide.close()
 
 
 if __name__ == "__main__":
